@@ -9,7 +9,7 @@ An intelligent AI assistant integrated directly into EGroupware, providing natur
 - **Secure Authentication**: Uses EGroupware's built-in authentication system
 - **Configuration Management**: Admin and user-level settings with API testing
 - **Conversation Export**: Export chat history as JSON files
-- **Multiple UI Views**: Chat interface, settings, conversation history, and detail views
+- **Multiple UI Views**: Chat interface, settings, conversation history, and detail views 
 
 ## Supported Operations
 
