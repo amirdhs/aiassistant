@@ -1,0 +1,41 @@
+<?php
+/**
+ * EGroupware AI Assistant - English language file
+ */
+
+$lang['AI Assistant'] = 'AI Assistant';
+$lang['ai-assistant'] = 'AI Assistant';
+$lang['Chat with AI assistant'] = 'Chat with AI assistant';
+$lang['Send'] = 'Send';
+$lang['Clear History'] = 'Clear History';
+$lang['Type your message here...'] = 'Type your message here...';
+$lang['Welcome! I\'m your EGroupware AI assistant.'] = 'Welcome! I\'m your EGroupware AI assistant.';
+$lang['AI is thinking...'] = 'AI is thinking...';
+$lang['Chat history cleared successfully'] = 'Chat history cleared successfully';
+$lang['Failed to clear chat history'] = 'Failed to clear chat history';
+$lang['Are you sure you want to clear your chat history?'] = 'Are you sure you want to clear your chat history?';
+$lang['Clear Chat History'] = 'Clear Chat History';
+$lang['AI API URL'] = 'AI API URL';
+$lang['AI API Key'] = 'AI API Key';
+$lang['AI Model'] = 'AI Model';
+$lang['Maximum Chat History Length'] = 'Maximum Chat History Length';
+$lang['AI Assistant Configuration'] = 'AI Assistant Configuration';
+$lang['Start New Conversation'] = 'Start New Conversation';
+$lang['Clear all chat history?'] = 'Clear all chat history?';
+$lang['Usage Statistics'] = 'Usage Statistics';
+$lang['Preferred AI Model'] = 'Preferred AI Model';
+$lang['Chat History Limit'] = 'Chat History Limit';
+$lang['Enable Tool Execution'] = 'Enable Tool Execution';
+$lang['Auto-save Conversations'] = 'Auto-save Conversations';
+$lang['Enable AI Notifications'] = 'Enable AI Notifications';
+$lang['Response Format'] = 'Response Format';
+$lang['AI API URL'] = 'AI API URL';
+$lang['AI API Key'] = 'AI API Key';
+$lang['Default AI Model'] = 'Default AI Model';
+$lang['Maximum Chat History Length'] = 'Maximum Chat History Length';
+$lang['Request Timeout (seconds)'] = 'Request Timeout (seconds)';
+$lang['Enable Debug Logging'] = 'Enable Debug Logging';
+$lang['Allowed Tools'] = 'Allowed Tools';
+$lang['Enable Rate Limiting'] = 'Enable Rate Limiting';
+$lang['Requests per Hour'] = 'Requests per Hour';
+$lang['Requests per Day'] = 'Requests per Day';
