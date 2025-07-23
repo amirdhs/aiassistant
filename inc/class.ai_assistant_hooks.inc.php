@@ -47,6 +47,7 @@ class ai_assistant_hooks
 			'titles'=> AI_ASSISTANT_APP.'.EGroupware\\AIAssistant\\Bo.link_titles',
 			'view'  => array(
 				'menuaction' => AI_ASSISTANT_APP.'.EGroupware\\AIAssistant\\Ui.index',
+				'ajax' => 'true'
 			),
 			'view_id' => 'history_id',
 			'view_popup'  => '800x600',
@@ -57,6 +58,7 @@ class ai_assistant_hooks
 			),
 			'add' => array(
 				'menuaction' => AI_ASSISTANT_APP.'.EGroupware\\AIAssistant\\Ui.index',
+				'ajax' => 'true'
 			),
 			'add_app'    => 'link_app',
 			'add_id'     => 'link_id',
