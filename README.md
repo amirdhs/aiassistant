@@ -2,6 +2,7 @@
 
 An intelligent AI assistant integrated directly into EGroupware, providing natural language interaction with your EGroupware data.
 
+
 - **Natural Language Interface**: Chat with your EGroupware system using plain English
 - **Real Tool Integration**: Directly create, read, update, and delete EGroupware data
 - **Persistent Chat History**: Your conversations are saved and accessible across sessions
