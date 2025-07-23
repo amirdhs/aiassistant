@@ -12,7 +12,7 @@ $setup_info['ai-assistant']['title']     = 'AI Assistant';
 $setup_info['ai-assistant']['version']   = '1.0.0';
 $setup_info['ai-assistant']['app_order'] = 60;
 $setup_info['ai-assistant']['enable']    = 1;
-$setup_info['ai-assistant']['index']     = 'ai-assistant.'.EGroupware\AIAssistant\Ui::class.'.index&ajax=true';
+$setup_info['ai-assistant']['index']     = 'ai-assistant.'.EGroupware\AIAssistant\Ui::class.'.index';
 
 $setup_info['ai-assistant']['author'] = array(
     'name'  => 'EGroupware Team',
