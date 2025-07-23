@@ -34,9 +34,9 @@ class Ui
     /**
      * Main AI assistant interface
      *
-     * @param array $content
+     * @param array|null $content
      */
-    public function index(array $content = null)
+    public function index(?array $content = null)
     {
         // Check if user has access to AI assistant
         if (!$GLOBALS['egw']->acl->check('run', 1, 'ai-assistant')) {
@@ -62,9 +62,9 @@ class Ui
     /**
      * Configuration/Settings interface
      *
-     * @param array $content
+     * @param array|null $content
      */
-    public function edit(array $content = null)
+    public function edit(?array $content = null)
     {
         // Check if user has admin access for global settings
         $is_admin = $GLOBALS['egw']->acl->check('admin', 1, 'ai-assistant');
@@ -146,9 +146,9 @@ class Ui
     /**
      * List view for conversation history
      *
-     * @param array $content
+     * @param array|null $content
      */
-    public function list(array $content = null)
+    public function list(?array $content = null)
     {
         if (!$GLOBALS['egw']->acl->check('run', 1, 'ai-assistant')) {
             Api\Framework::message('You do not have permission to access the AI Assistant', 'error');
@@ -180,9 +180,9 @@ class Ui
     /**
      * Dialog for viewing conversation details
      *
-     * @param array $content
+     * @param array|null $content
      */
-    public function dialog(array $content = null)
+    public function dialog(?array $content = null)
     {
         if (!$GLOBALS['egw']->acl->check('run', 1, 'ai-assistant')) {
             Api\Framework::message('You do not have permission to access the AI Assistant', 'error');
@@ -541,9 +541,9 @@ class Ui
     /**
      * Export conversations
      *
-     * @param array $content
+     * @param array|null $content
      */
-    public function export(array $content = null)
+    public function export(?array $content = null)
     {
         $selected = $_REQUEST['selected'] ?? [];
         if (empty($selected)) {

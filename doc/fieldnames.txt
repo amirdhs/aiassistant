@@ -1,0 +1,42 @@
+# AI Assistant Field Names
+
+## Database Fields
+
+### egw_ai_assistant_history table:
+- history_id: Primary key for conversation history
+- user_id: EGroupware user ID
+- conversation_data: JSON data of conversation messages
+- created: Timestamp when conversation started
+- modified: Timestamp when conversation was last updated
+- title: Conversation title/summary
+- status: Status (active, archived, deleted)
+
+### egw_ai_assistant_config table:
+- config_id: Primary key for configuration
+- user_id: EGroupware user ID (NULL for global config)
+- config_name: Configuration parameter name
+- config_value: Configuration parameter value
+- created: Timestamp when created
+- modified: Timestamp when last modified
+
+## Merge Fields
+
+When creating documents with merge functionality, the following fields are available:
+
+### Conversation Fields:
+- $$history_id$$: Unique conversation ID
+- $$title$$: Conversation title
+- $$created$$: When conversation was created
+- $$modified$$: When conversation was last modified
+- $$status$$: Current status
+- $$message_count$$: Number of messages in conversation
+
+### User Fields:
+- $$user_fullname$$: Full name of user
+- $$user_email$$: User's email address
+- $$user_id$$: EGroupware user ID
+
+### System Fields:
+- $$ai_model$$: AI model being used
+- $$api_provider$$: AI API provider
+- $$export_date$$: Date when document was generated

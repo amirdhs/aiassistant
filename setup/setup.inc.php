@@ -12,7 +12,7 @@ $setup_info['ai-assistant']['title']     = 'AI Assistant';
 $setup_info['ai-assistant']['version']   = '1.0.0';
 $setup_info['ai-assistant']['app_order'] = 60;
 $setup_info['ai-assistant']['enable']    = 1;
-$setup_info['ai-assistant']['index']     = 'ai-assistant.'.EGroupware\AIAssistant\Ui::class.'.index&ajax=true';
+$setup_info['ai-assistant']['index']     = 'ai-assistant.'.EGroupware\AIAssistant\Ui::class.'.index';
 
 $setup_info['ai-assistant']['author'] = array(
     'name'  => 'EGroupware Team',
@@ -37,14 +37,16 @@ $setup_info['ai-assistant']['depends'][] = array(
 $setup_info['ai-assistant']['tables'][] = 'egw_ai_assistant_history';
 $setup_info['ai-assistant']['tables'][] = 'egw_ai_assistant_config';
 
-/* Hooks */
-$setup_info['ai-assistant']['hooks'][] = 'admin';
-$setup_info['ai-assistant']['hooks'][] = 'preferences';
-$setup_info['ai-assistant']['hooks'][] = 'sidebox_menu';
-$setup_info['ai-assistant']['hooks'][] = 'search_link';
-$setup_info['ai-assistant']['hooks'][] = 'config';
-$setup_info['ai-assistant']['hooks'][] = 'acl_rights';
-$setup_info['ai-assistant']['hooks'][] = 'categories';
+/* The hooks this app includes, needed for hooks registration */
+$setup_info['ai-assistant']['hooks']['admin'] = 'ai_assistant_hooks::all_hooks';
+$setup_info['ai-assistant']['hooks']['sidebox_menu'] = 'ai_assistant_hooks::all_hooks';
+$setup_info['ai-assistant']['hooks']['settings'] = 'ai_assistant_hooks::settings';
+$setup_info['ai-assistant']['hooks']['search_link'] = 'ai_assistant_hooks::search_link';
+$setup_info['ai-assistant']['hooks']['config'] = 'ai_assistant_hooks::config';
+$setup_info['ai-assistant']['hooks']['acl_rights'] = 'ai_assistant_hooks::acl_rights';
+$setup_info['ai-assistant']['hooks']['categories'] = 'ai_assistant_hooks::categories';
+$setup_info['ai-assistant']['hooks']['export_limit'] = 'ai_assistant_hooks::getAppExportLimit';
+$setup_info['ai-assistant']['hooks']['delete_category'] = 'ai-assistant.EGroupware\\AIAssistant\\Bo.delete_category';
 
 /* Configuration options */
 $setup_info['ai-assistant']['config'][] = array(

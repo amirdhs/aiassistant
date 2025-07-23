@@ -47,7 +47,6 @@ class ai_assistant_hooks
 			'titles'=> AI_ASSISTANT_APP.'.EGroupware\\AIAssistant\\Bo.link_titles',
 			'view'  => array(
 				'menuaction' => AI_ASSISTANT_APP.'.EGroupware\\AIAssistant\\Ui.index',
-				'ajax' => 'true'
 			),
 			'view_id' => 'history_id',
 			'view_popup'  => '800x600',
@@ -58,7 +57,6 @@ class ai_assistant_hooks
 			),
 			'add' => array(
 				'menuaction' => AI_ASSISTANT_APP.'.EGroupware\\AIAssistant\\Ui.index',
-				'ajax' => 'true'
 			),
 			'add_app'    => 'link_app',
 			'add_id'     => 'link_id',
@@ -77,28 +75,65 @@ class ai_assistant_hooks
 	{
 		$appname = AI_ASSISTANT_APP;
 		$location = is_array($args) ? $args['location'] : $args;
+		//echo "<p>ai_assistant_hooks::all_hooks(".print_r($args,True).") appname='$appname', location='$location'</p>\n";
 
 		if ($location == 'sidebox_menu')
 		{
+			// Magic etemplate2 favorites menu (from nextmatch widget)
+			display_sidebox($appname, lang('Favorites'), Framework\Favorites::list_favorites('ai-assistant'));
+
 			$file = array(
-				'AI Assistant' => Egw::link('/index.php',array(
+				'New Chat' => Egw::link('/index.php',array(
 					'menuaction' => 'ai-assistant.EGroupware\\AIAssistant\\Ui.index',
 					'ajax' => 'true')),
 				array(
-					'text' => lang('Start New Conversation'),
+					'text' => lang('Chat History'),
 					'no_lang' => true,
-					'link' => "javascript:egw.open('','ai-assistant','add')"
+					'link' => Egw::link('/index.php',array(
+						'menuaction' => 'ai-assistant.EGroupware\\AIAssistant\\Ui.index',
+						'ajax' => 'true',
+						'view' => 'history'
+					))
+				),
+				array(
+					'text' => lang('Configuration'),
+					'no_lang' => true,
+					'link' => Egw::link('/index.php',array(
+						'menuaction' => 'ai-assistant.EGroupware\\AIAssistant\\Ui.edit',
+						'ajax' => 'true'
+					))
 				),
 			);
 			
 			// Add separator
 			$file[] = ['text'=>'--'];
 			
+			// Add admin functions for admins
+			if ($GLOBALS['egw_info']['user']['apps']['admin'])
+			{
+				$file['Global Settings'] = Egw::link('/index.php','menuaction=admin.admin_ui.index&load=ai-assistant');
+			}
+			
 			// Add chat history management
 			$file['Clear History'] = "javascript:if(confirm('".lang('Clear all chat history?')."')){egw.json('ai-assistant.EGroupware\\\\AIAssistant\\\\Ui.api',{action:'clear_history'}).sendRequest();}";
-			$file['Placeholders'] = Egw::link('/index.php','menuaction=ai-assistant.ai_assistant_merge.show_replacements');
 			
 			display_sidebox($appname, lang('AI Assistant'), $file);
+
+			if ($GLOBALS['egw_info']['user']['apps']['admin'])
+			{
+				$file = array(
+					'Site Configuration' => Egw::link('/index.php','menuaction=admin.admin_config.index&appname=' . $appname.'&ajax=true'),
+					'Global Categories'  => Egw::link('/index.php','menuaction=admin.admin_categories.index&appname=' . $appname.'&ajax=true'),
+				);
+				if ($location == 'admin')
+				{
+					display_section($appname,$file);
+				}
+				else
+				{
+					display_sidebox($appname,lang('Admin'),$file);
+				}
+			}
 		}
 
 		if ($GLOBALS['egw_info']['user']['apps']['admin'])
@@ -355,5 +390,15 @@ class ai_assistant_hooks
 		unset($data);	// not used, but required by function signature
 		
 		return self::settings();
+	}
+
+	/**
+	 * Export limit hook
+	 *
+	 * @return int export limit
+	 */
+	static function getAppExportLimit()
+	{
+		return (int)$GLOBALS['egw_info']['server']['export_limit'] ?: 1000;
 	}
 }
