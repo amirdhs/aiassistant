@@ -7,70 +7,73 @@
  * @license GPL-3.0-or-later
  */
 
-$setup_info['ai-assistant']['name']      = 'ai-assistant';
-$setup_info['ai-assistant']['title']     = 'AI Assistant';
-$setup_info['ai-assistant']['version']   = '1.0.0';
-$setup_info['ai-assistant']['app_order'] = 60;
-$setup_info['ai-assistant']['enable']    = 1;
-$setup_info['ai-assistant']['index']     = 'ai-assistant.'.EGroupware\AIAssistant\Ui::class.'.index';
+use EGroupware\AIAssistant\Hooks;
+use EGroupware\AIAssistant\Bo;
 
-$setup_info['ai-assistant']['author'] = array(
+$setup_info['aiassistant']['name']      = 'aiassistant';
+$setup_info['aiassistant']['title']     = 'AI Assistant';
+$setup_info['aiassistant']['version']   = '1.0';
+$setup_info['aiassistant']['app_order'] = 60;
+$setup_info['aiassistant']['enable']    = 5;    // do NOT show in navbar
+$setup_info['aiassistant']['index']     = 'aiassistant.'.EGroupware\AIAssistant\Ui::class.'.index&ajax=true';
+
+$setup_info['aiassistant']['author'] = array(
     'name'  => 'EGroupware Team',
     'email' => 'info@egroupware.org'
 );
 
-$setup_info['ai-assistant']['license']  = 'GPL-3.0-or-later';
-$setup_info['ai-assistant']['description'] = 'AI-powered assistant with Model Context Protocol (MCP) integration for EGroupware assistance';
+$setup_info['aiassistant']['license']  = 'GPL-3.0-or-later';
+$setup_info['aiassistant']['description'] = 'AI-powered assistant with Model Context Protocol (MCP) integration for EGroupware assistance';
 
-$setup_info['ai-assistant']['maintainer'] = array(
+$setup_info['aiassistant']['maintainer'] = array(
     'name'  => 'EGroupware Team',
     'email' => 'info@egroupware.org'
 );
 
 /* Dependencies for this app to work */
-$setup_info['ai-assistant']['depends'][] = array(
+$setup_info['aiassistant']['depends'][] = array(
     'appname' => 'api',
     'versions' => Array('23.1')
 );
 
 /* Define the tables this app uses */
-$setup_info['ai-assistant']['tables'][] = 'egw_ai_assistant_history';
-$setup_info['ai-assistant']['tables'][] = 'egw_ai_assistant_config';
+$setup_info['aiassistant']['tables'][] = 'egw_ai_assistant_history';
+$setup_info['aiassistant']['tables'][] = 'egw_ai_assistant_config';
 
 /* The hooks this app includes, needed for hooks registration */
-$setup_info['ai-assistant']['hooks']['admin'] = 'ai_assistant_hooks::all_hooks';
-$setup_info['ai-assistant']['hooks']['sidebox_menu'] = 'ai_assistant_hooks::all_hooks';
-$setup_info['ai-assistant']['hooks']['settings'] = 'ai_assistant_hooks::settings';
-$setup_info['ai-assistant']['hooks']['search_link'] = 'ai_assistant_hooks::search_link';
-$setup_info['ai-assistant']['hooks']['config'] = 'ai_assistant_hooks::config';
-$setup_info['ai-assistant']['hooks']['acl_rights'] = 'ai_assistant_hooks::acl_rights';
-$setup_info['ai-assistant']['hooks']['categories'] = 'ai_assistant_hooks::categories';
-$setup_info['ai-assistant']['hooks']['export_limit'] = 'ai_assistant_hooks::getAppExportLimit';
-$setup_info['ai-assistant']['hooks']['delete_category'] = 'ai-assistant.EGroupware\\AIAssistant\\Bo.delete_category';
+$setup_info['aiassistant']['hooks']['admin'] = Hooks::class.'::all_hooks';
+$setup_info['aiassistant']['hooks']['sidebox_menu'] = Hooks::class.'::all_hooks';
+$setup_info['aiassistant']['hooks']['settings'] = Hooks::class.'::settings';
+$setup_info['aiassistant']['hooks']['search_link'] = Hooks::class.'::search_link';
+$setup_info['aiassistant']['hooks']['config'] = Hooks::class.'::config';
+$setup_info['aiassistant']['hooks']['acl_rights'] = Hooks::class.'::acl_rights';
+$setup_info['aiassistant']['hooks']['categories'] = Hooks::class.'::categories';
+$setup_info['aiassistant']['hooks']['export_limit'] = Hooks::class.'::getAppExportLimit';
+$setup_info['aiassistant']['hooks']['delete_category'] = 'aiassistant.'.Bo::class.'.delete_category';
 
 /* Configuration options */
-$setup_info['ai-assistant']['config'][] = array(
+$setup_info['aiassistant']['config'][] = array(
     'name'    => 'ai_api_url',
     'label'   => 'AI API URL',
     'type'    => 'input',
     'default' => 'https://models.inference.ai.azure.com'
 );
 
-$setup_info['ai-assistant']['config'][] = array(
+$setup_info['aiassistant']['config'][] = array(
     'name'    => 'ai_api_key',
     'label'   => 'AI API Key',
     'type'    => 'password',
     'default' => ''
 );
 
-$setup_info['ai-assistant']['config'][] = array(
+$setup_info['aiassistant']['config'][] = array(
     'name'    => 'ai_model',
     'label'   => 'AI Model',
     'type'    => 'input',
     'default' => 'gpt-4o-mini'
 );
 
-$setup_info['ai-assistant']['config'][] = array(
+$setup_info['aiassistant']['config'][] = array(
     'name'    => 'max_history_length',
     'label'   => 'Maximum Chat History Length',
     'type'    => 'input',

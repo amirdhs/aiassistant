@@ -1,41 +1,61 @@
-<?php
-/**
- * EGroupware AI Assistant - English language file
- */
-
-$lang['AI Assistant'] = 'AI Assistant';
-$lang['ai-assistant'] = 'AI Assistant';
-$lang['Chat with AI assistant'] = 'Chat with AI assistant';
-$lang['Send'] = 'Send';
-$lang['Clear History'] = 'Clear History';
-$lang['Type your message here...'] = 'Type your message here...';
-$lang['Welcome! I\'m your EGroupware AI assistant.'] = 'Welcome! I\'m your EGroupware AI assistant.';
-$lang['AI is thinking...'] = 'AI is thinking...';
-$lang['Chat history cleared successfully'] = 'Chat history cleared successfully';
-$lang['Failed to clear chat history'] = 'Failed to clear chat history';
-$lang['Are you sure you want to clear your chat history?'] = 'Are you sure you want to clear your chat history?';
-$lang['Clear Chat History'] = 'Clear Chat History';
-$lang['AI API URL'] = 'AI API URL';
-$lang['AI API Key'] = 'AI API Key';
-$lang['AI Model'] = 'AI Model';
-$lang['Maximum Chat History Length'] = 'Maximum Chat History Length';
-$lang['AI Assistant Configuration'] = 'AI Assistant Configuration';
-$lang['Start New Conversation'] = 'Start New Conversation';
-$lang['Clear all chat history?'] = 'Clear all chat history?';
-$lang['Usage Statistics'] = 'Usage Statistics';
-$lang['Preferred AI Model'] = 'Preferred AI Model';
-$lang['Chat History Limit'] = 'Chat History Limit';
-$lang['Enable Tool Execution'] = 'Enable Tool Execution';
-$lang['Auto-save Conversations'] = 'Auto-save Conversations';
-$lang['Enable AI Notifications'] = 'Enable AI Notifications';
-$lang['Response Format'] = 'Response Format';
-$lang['AI API URL'] = 'AI API URL';
-$lang['AI API Key'] = 'AI API Key';
-$lang['Default AI Model'] = 'Default AI Model';
-$lang['Maximum Chat History Length'] = 'Maximum Chat History Length';
-$lang['Request Timeout (seconds)'] = 'Request Timeout (seconds)';
-$lang['Enable Debug Logging'] = 'Enable Debug Logging';
-$lang['Allowed Tools'] = 'Allowed Tools';
-$lang['Enable Rate Limiting'] = 'Enable Rate Limiting';
-$lang['Requests per Hour'] = 'Requests per Hour';
-$lang['Requests per Day'] = 'Requests per Day';
+ai api key	aiassistant	en	AI API Key
+ai api url	aiassistant	en	AI API URL
+ai assistant - conversation history	aiassistant	en	AI Assistant - Conversation History
+ai assistant configuration	aiassistant	en	AI Assistant Configuration
+ai conversation	aiassistant	en	AI Conversation
+ai conversation details	aiassistant	en	AI Conversation Details
+ai model	aiassistant	en	AI Model
+aiassistant	common	en	AI Assistant
+allow ai to execute actions like creating contacts, calendar events, etc.	aiassistant	en	Allow AI to execute actions like creating contacts, calendar events, etc.
+api configuration	aiassistant	en	API Configuration
+auto-save conversations	aiassistant	en	Auto-save conversations
+automatically save chat conversations for future reference	aiassistant	en	Automatically save chat conversations for future reference
+chat history	aiassistant	en	Chat History
+chat history limit	aiassistant	en	Chat History Limit
+chat settings	aiassistant	en	Chat Settings
+clear all	aiassistant	en	Clear All
+clear all chat history?	aiassistant	en	Clear all chat history?
+clear history	aiassistant	en	Clear History
+configuration	aiassistant	en	Configuration
+configure ai settings and preferences	aiassistant	en	Configure AI settings and preferences
+content	aiassistant	en	Content
+continue chat	aiassistant	en	Continue Chat
+conversation details	aiassistant	en	Conversation Details
+created:	aiassistant	en	Created:
+delete selected conversations?	aiassistant	en	Delete selected conversations?
+enable ai assistant	aiassistant	en	Enable AI Assistant
+enable ai notifications	aiassistant	en	Enable AI Notifications
+enable tool execution	aiassistant	en	Enable Tool Execution
+enter your api key	aiassistant	en	Enter your API key
+export	aiassistant	en	Export
+get notified when ai completes long-running tasks	aiassistant	en	Get notified when AI completes long-running tasks
+global categories	aiassistant	en	Global Categories
+global settings	aiassistant	en	Global Settings
+gpt-4o mini (recommended)	aiassistant	en	GPT-4o Mini (Recommended)
+how detailed should ai responses be	aiassistant	en	How detailed should AI responses be
+https://models.inference.ai.azure.com	aiassistant	en	https://models.inference.ai.azure.com
+max history length	aiassistant	en	Max History Length
+max tokens	aiassistant	en	Max Tokens
+maximum number of chat messages to keep in history	aiassistant	en	Maximum number of chat messages to keep in history
+message content	aiassistant	en	Message Content
+natural language interface to egroupware	aiassistant	en	Natural language interface to EGroupware
+new chat	aiassistant	en	New Chat
+preferred ai model	aiassistant	en	Preferred AI Model
+response format	aiassistant	en	Response Format
+response time:	aiassistant	en	Response Time:
+select your preferred ai model for conversations	aiassistant	en	Select your preferred AI model for conversations
+settings	aiassistant	en	Settings
+show tool execution details	aiassistant	en	Show tool execution details
+status: ready	aiassistant	en	Status: Ready
+temperature	aiassistant	en	Temperature
+test connection	aiassistant	en	Test Connection
+tokens used:	aiassistant	en	Tokens Used:
+tool calls	aiassistant	en	Tool Calls
+type your message here...	aiassistant	en	Type your message here...
+unknown action: %1	aiassistant	en	Unknown action: %1
+usage statistics	aiassistant	en	Usage Statistics
+user preferences	aiassistant	en	User Preferences
+user:	aiassistant	en	User:
+view and manage your ai conversations	aiassistant	en	View and manage your AI conversations
+view details	aiassistant	en	View Details
+welcome! how can i help you with egroupware today?	aiassistant	en	Welcome! How can I help you with EGroupware today?

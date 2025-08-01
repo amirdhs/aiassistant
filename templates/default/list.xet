@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE overlay PUBLIC "-//EGroupware GmbH//eTemplate 2.0//EN" "https://www.egroupware.org/etemplate2.0.dtd">
 <overlay>
-	<template id="ai-assistant.list" template="" lang="" group="0" version="1.0.0">
+	<template id="aiassistant.list" template="" lang="" group="0" version="1.0.0">
 		<grid width="100%">
 			<columns>
 				<column width="100%"/>
@@ -9,7 +9,7 @@
 			<rows>
 				<row class="dialogHeadbar">
 					<et2-hbox span="all" width="100%">
-						<et2-image src="ai-assistant/navbar" align="left"></et2-image>
+						<et2-image src="aiassistant/navbar" align="left"></et2-image>
 						<et2-vbox class="dialogHeader">
 							<et2-description value="AI Assistant - Conversation History" class="dialogHeader"></et2-description>
 							<et2-description value="View and manage your AI conversations" class="dialogSubHeader"></et2-description>
@@ -17,12 +17,12 @@
 					</et2-hbox>
 				</row>
 				<row class="row">
-					<et2-nextmatch id="nm" template="ai-assistant.list.rows" header_left="ai-assistant.list.header_left" header_right="ai-assistant.list.header_right"/>
+					<nextmatch id="nm" template="aiassistant.list.rows" header_left="aiassistant.list.header_left" header_right="aiassistant.list.header_right"/>
 				</row>
 			</rows>
 		</grid>
 	</template>
-	<template id="ai-assistant.list.rows" template="" lang="" group="0" version="1.0.0">
+	<template id="aiassistant.list.rows" template="" lang="" group="0" version="1.0.0">
 		<grid>
 			<columns>
 				<column width="120"/>
@@ -35,10 +35,10 @@
 			<rows>
 				<row class="th">
 					<et2-nextmatch-header-filter id="message_type" options="All,user,assistant"/>
-					<et2-nextmatch-sortheader label="Title" id="conversation_title"/>
-					<et2-nextmatch-sortheader label="Content" id="message_content"/>
-					<et2-nextmatch-sortheader label="User" id="account_fullname"/>
-					<et2-nextmatch-sortheader label="Created" id="created"/>
+					<nextmatch-sortheader label="Title" id="conversation_title"/>
+					<nextmatch-sortheader label="Content" id="message_content"/>
+					<nextmatch-sortheader label="User" id="account_fullname"/>
+					<nextmatch-sortheader label="Created" id="created"/>
 					<et2-description value="Actions"/>
 				</row>
 				<row class="row $row_cont[class]">
@@ -48,22 +48,22 @@
 					<et2-description id="${row}[account_fullname]"></et2-description>
 					<et2-date-time id="${row}[created]" readonly="true"></et2-date-time>
 					<et2-hbox>
-						<et2-button id="view[${row_cont[history_id]}]" label="View" image="view" onclick="app.ai_assistant.view_conversation"></et2-button>
-						<et2-button id="delete[${row_cont[history_id]}]" label="Delete" image="delete" onclick="app.ai_assistant.delete_conversation"></et2-button>
+						<et2-button id="view[${row_cont[history_id]}]" label="View" image="view" onclick="app.aiassistant.view_conversation"></et2-button>
+						<et2-button id="delete[${row_cont[history_id]}]" label="Delete" image="delete" onclick="app.aiassistant.delete_conversation"></et2-button>
 					</et2-hbox>
 				</row>
 			</rows>
 		</grid>
 	</template>
-	<template id="ai-assistant.list.header_left" template="" lang="" group="0" version="1.0.0">
+	<template id="aiassistant.list.header_left" template="" lang="" group="0" version="1.0.0">
 		<et2-hbox>
-			<et2-button id="new_chat" label="New Chat" onclick="app.ai_assistant.new_chat" image="add"></et2-button>
-			<et2-button id="clear_all" label="Clear All" onclick="app.ai_assistant.clear_all_history" image="delete"></et2-button>
+			<et2-button id="new_chat" label="New Chat" onclick="app.aiassistant.new_chat" image="add"></et2-button>
+			<et2-button id="clear_all" label="Clear All" onclick="app.aiassistant.clear_all_history" image="delete"></et2-button>
 		</et2-hbox>
 	</template>
-	<template id="ai-assistant.list.header_right" template="" lang="" group="0" version="1.0.0">
+	<template id="aiassistant.list.header_right" template="" lang="" group="0" version="1.0.0">
 		<et2-hbox>
-			<et2-button id="preferences" label="Settings" onclick="app.ai_assistant.open_preferences" image="edit"></et2-button>
+			<et2-button id="preferences" label="Settings" onclick="app.aiassistant.open_preferences" image="edit"></et2-button>
 		</et2-hbox>
 	</template>
 </overlay>

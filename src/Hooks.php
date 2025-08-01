@@ -8,28 +8,28 @@
  * @license http://opensource.org/licenses/gpl-license.php GPL - GNU General Public License
  */
 
-use EGroupware\Api;
-use EGroupware\Api\Link;
+namespace EGroupware\AIAssistant;
+
 use EGroupware\Api\Framework;
 use EGroupware\Api\Egw;
 use EGroupware\Api\Acl;
 
 if (!defined('AI_ASSISTANT_APP'))
 {
-	define('AI_ASSISTANT_APP','ai-assistant');
+	define('AI_ASSISTANT_APP','aiassistant');
 }
 
 /**
  * diverse hooks as static methods
  */
-class ai_assistant_hooks
+class Hooks
 {
 	/**
 	 * Instance of AI Assistant business object
 	 *
-	 * @var EGroupware\AIAssistant\Bo
+	 * @var Bo
 	 */
-	static $ai_assistant_bo;
+	static $bo;
 
 	/**
 	 * Hook called by link-class to include AI Assistant in the appregistry of the linkage
@@ -58,11 +58,11 @@ class ai_assistant_hooks
 			'add' => array(
 				'menuaction' => AI_ASSISTANT_APP.'.EGroupware\\AIAssistant\\Ui.index',
 			),
-			'add_app'    => 'link_app',
-			'add_id'     => 'link_id',
+			'add_app'	=> 'link_app',
+			'add_id'	 => 'link_id',
 			'add_popup'  => '800x600',
-			'notify'     => AI_ASSISTANT_APP.'.EGroupware\\AIAssistant\\Bo.notify',
-			'merge'      => false,
+			'notify'	 => AI_ASSISTANT_APP.'.EGroupware\\AIAssistant\\Bo.notify',
+			'merge'	  => false,
 		);
 	}
 
@@ -143,7 +143,7 @@ class ai_assistant_hooks
 				'Custom fields' => Egw::link('/index.php','menuaction=admin.admin_customfields.index&appname='.$appname.'&use_private=1&ajax=true'),
 				'Global Categories'  => Egw::link('/index.php',array(
 					'menuaction' => 'admin.admin_categories.index',
-					'appname'    => $appname,
+					'appname'	=> $appname,
 					'global_cats'=> True,
 					'ajax' => 'true',
 				)),
@@ -239,13 +239,6 @@ class ai_assistant_hooks
 			],
 		];
 
-		// Merge print
-		if ($GLOBALS['egw_info']['user']['apps']['filemanager'])
-		{
-			$merge = new ai_assistant_merge();
-			$settings += $merge->merge_preferences();
-		}
-
 		return $settings;
 	}
 
@@ -259,10 +252,10 @@ class ai_assistant_hooks
 		unset($params);	// not used, but required by function signature
 
 		return array(
-			Acl::READ    => 'read',
-			Acl::EDIT    => 'edit',
+			Acl::READ	=> 'read',
+			Acl::EDIT	=> 'edit',
 			Acl::DELETE  => 'delete',
-			16           => 'admin_access', // Custom ACL for admin features
+			Acl::CUSTOM1 => 'admin_access', // Custom ACL for admin features
 		);
 	}
 
