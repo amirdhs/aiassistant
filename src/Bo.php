@@ -90,10 +90,18 @@ class Bo
 	 */
 	private function get_ai_config()
 	{
+		$api_url = $this->so->get_config('ai_api_url', 'https://api.openai.com/v1');
+		$model = $this->so->get_config('ai_model', 'gpt-4o-mini');
+		
+		// Clean up model name - remove provider prefix if present
+		if (strpos($model, ':') !== false) {
+			$model = explode(':', $model)[1];
+		}
+		
 		return [
-			'api_url' => $this->so->get_config('ai_api_url', 'https://models.inference.ai.azure.com'),
+			'api_url' => $api_url,
 			'api_key' => $this->so->get_config('ai_api_key'),
-			'model' => $this->so->get_config('ai_model', 'gpt-4o-mini'),
+			'model' => $model,
 		];
 	}
 	
@@ -134,11 +142,21 @@ class Bo
 	{
 		$user_name = $GLOBALS['egw_info']['user']['account_fullname'] ?: $GLOBALS['egw_info']['user']['account_lid'];
 		
-		return "You are an AI assistant integrated into EGroupware, helping user '{$user_name}' with their daily tasks. " .
-			   "You can help with contacts, calendar events, projects, and general EGroupware functionality. " .
-			   "You have access to EGroupware's internal APIs to perform actions on behalf of the user. " .
-			   "When performing actions, always confirm what you've done and provide helpful feedback. " .
-			   "Be concise but friendly in your responses.";
+		return "You are an AI assistant integrated into EGroupware, helping user '{$user_name}' with their daily business tasks. " .
+			   "You have access to EGroupware's internal APIs and can perform real actions. Available functions include:\n\n" .
+			   "CONTACTS:\n" .
+			   "- create_contact: Create new contacts with name, email, phone, organization, title, notes\n" .
+			   "- search_contacts: Search existing contacts by name, email, company, etc.\n\n" .
+			   "CALENDAR:\n" .
+			   "- create_calendar_event: Schedule meetings/appointments with title, time, location, attendees\n" .
+			   "- search_calendar_events: Find existing events by date range or search terms\n\n" .
+			   "TASKS:\n" .
+			   "- create_task: Create tasks in InfoLog with title, description, due date, priority, assignments\n\n" .
+			   "EMAIL:\n" .
+			   "- send_email: Send emails through EGroupware with to/cc/bcc recipients\n\n" .
+			   "When users ask you to perform actions, use the appropriate tools and confirm what you've done. " .
+			   "Be helpful, concise, and professional. Ask for clarification if needed parameters are missing. " .
+			   "Always confirm successful operations and provide useful details like IDs or URLs when available.";
 	}
 	
 	/**
@@ -170,18 +188,42 @@ class Bo
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 		
 		$response = curl_exec($ch);
 		$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$curl_error = curl_error($ch);
 		curl_close($ch);
 		
+		if ($curl_error) {
+			throw new \Exception('API request failed: ' . $curl_error);
+		}
+		
 		if ($http_code !== 200) {
-			throw new \Exception('AI API request failed with status: ' . $http_code);
+			$error_details = '';
+			if ($response) {
+				$error_response = json_decode($response, true);
+				$error_details = $error_response['error']['message'] ?? $response;
+			}
+			
+			$error_message = "AI API request failed with status: $http_code";
+			if ($error_details) {
+				$error_message .= " - " . $error_details;
+			}
+			
+			// Add debugging info for common errors
+			if ($http_code === 401) {
+				$error_message .= "\nPlease verify your API key is correct and has the necessary permissions.";
+			} elseif ($http_code === 404) {
+				$error_message .= "\nPlease check the API URL: " . $config['api_url'];
+			}
+			
+			throw new \Exception($error_message);
 		}
 		
 		$result = json_decode($response, true);
 		if (!$result || !isset($result['choices'][0]['message'])) {
-			throw new \Exception('Invalid AI API response');
+			throw new \Exception('Invalid AI API response format');
 		}
 		
 		$ai_message = $result['choices'][0]['message'];
@@ -193,7 +235,8 @@ class Bo
 		
 		return [
 			'content' => $ai_message['content'] ?? 'I processed your request.',
-			'tool_calls' => $ai_message['tool_calls'] ?? null
+			'tool_calls' => $ai_message['tool_calls'] ?? null,
+			'usage' => $result['usage'] ?? null
 		];
 	}
 	
@@ -207,7 +250,7 @@ class Bo
 				'type' => 'function',
 				'function' => [
 					'name' => 'create_contact',
-					'description' => 'Create a new contact in EGroupware',
+					'description' => 'Create a new contact in EGroupware addressbook',
 					'parameters' => [
 						'type' => 'object',
 						'properties' => [
@@ -215,7 +258,9 @@ class Bo
 							'last_name' => ['type' => 'string', 'description' => 'Last name'],
 							'email' => ['type' => 'string', 'description' => 'Email address'],
 							'phone' => ['type' => 'string', 'description' => 'Phone number'],
-							'organization' => ['type' => 'string', 'description' => 'Organization/Company']
+							'organization' => ['type' => 'string', 'description' => 'Organization/Company'],
+							'title' => ['type' => 'string', 'description' => 'Job title'],
+							'notes' => ['type' => 'string', 'description' => 'Additional notes']
 						],
 						'required' => ['first_name', 'last_name']
 					]
@@ -225,11 +270,11 @@ class Bo
 				'type' => 'function',
 				'function' => [
 					'name' => 'search_contacts',
-					'description' => 'Search for contacts in EGroupware',
+					'description' => 'Search for contacts in EGroupware addressbook',
 					'parameters' => [
 						'type' => 'object',
 						'properties' => [
-							'query' => ['type' => 'string', 'description' => 'Search query (name, email, etc.)'],
+							'query' => ['type' => 'string', 'description' => 'Search query (name, email, company, etc.)'],
 							'limit' => ['type' => 'integer', 'description' => 'Maximum results to return', 'default' => 10]
 						],
 						'required' => ['query']
@@ -248,9 +293,63 @@ class Bo
 							'description' => ['type' => 'string', 'description' => 'Event description'],
 							'start_time' => ['type' => 'string', 'description' => 'Start time (YYYY-MM-DD HH:MM)'],
 							'end_time' => ['type' => 'string', 'description' => 'End time (YYYY-MM-DD HH:MM)'],
-							'location' => ['type' => 'string', 'description' => 'Event location']
+							'location' => ['type' => 'string', 'description' => 'Event location'],
+							'attendees' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of attendee email addresses']
 						],
 						'required' => ['title', 'start_time']
+					]
+				]
+			],
+			[
+				'type' => 'function',
+				'function' => [
+					'name' => 'search_calendar_events',
+					'description' => 'Search for calendar events in EGroupware',
+					'parameters' => [
+						'type' => 'object',
+						'properties' => [
+							'start_date' => ['type' => 'string', 'description' => 'Start date for search (YYYY-MM-DD)'],
+							'end_date' => ['type' => 'string', 'description' => 'End date for search (YYYY-MM-DD)'],
+							'query' => ['type' => 'string', 'description' => 'Search query for title/description'],
+							'limit' => ['type' => 'integer', 'description' => 'Maximum results to return', 'default' => 10]
+						]
+					]
+				]
+			],
+			[
+				'type' => 'function',
+				'function' => [
+					'name' => 'send_email',
+					'description' => 'Send an email through EGroupware',
+					'parameters' => [
+						'type' => 'object',
+						'properties' => [
+							'to' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Recipient email addresses'],
+							'subject' => ['type' => 'string', 'description' => 'Email subject'],
+							'body' => ['type' => 'string', 'description' => 'Email body content'],
+							'cc' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'CC recipients (optional)'],
+							'bcc' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'BCC recipients (optional)']
+						],
+						'required' => ['to', 'subject', 'body']
+					]
+				]
+			],
+			[
+				'type' => 'function',
+				'function' => [
+					'name' => 'create_task',
+					'description' => 'Create a task in EGroupware InfoLog',
+					'parameters' => [
+						'type' => 'object',
+						'properties' => [
+							'title' => ['type' => 'string', 'description' => 'Task title'],
+							'description' => ['type' => 'string', 'description' => 'Task description'],
+							'due_date' => ['type' => 'string', 'description' => 'Due date (YYYY-MM-DD)'],
+							'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent'], 'description' => 'Task priority'],
+							'assigned_to' => ['type' => 'string', 'description' => 'Email of person to assign task to'],
+							'category' => ['type' => 'string', 'description' => 'Task category']
+						],
+						'required' => ['title']
 					]
 				]
 			]
@@ -280,6 +379,18 @@ class Bo
 						
 					case 'create_calendar_event':
 						$result = $this->create_calendar_event_internal($arguments);
+						break;
+						
+					case 'send_email':
+						$result = $this->send_email_internal($arguments);
+						break;
+						
+					case 'search_calendar_events':
+						$result = $this->search_calendar_events_internal($arguments);
+						break;
+						
+					case 'create_task':
+						$result = $this->create_task_internal($arguments);
 						break;
 						
 					default:
@@ -321,6 +432,8 @@ class Bo
 			'email' => $args['email'] ?? '',
 			'tel_work' => $args['phone'] ?? '',
 			'org_name' => $args['organization'] ?? '',
+			'title' => $args['title'] ?? '',
+			'note' => $args['notes'] ?? '',
 			'owner' => $GLOBALS['egw_info']['user']['account_id']
 		];
 		
@@ -357,7 +470,8 @@ class Bo
 					'name' => $contact['n_fn'],
 					'email' => $contact['email'],
 					'phone' => $contact['tel_work'],
-					'organization' => $contact['org_name']
+					'organization' => $contact['org_name'],
+					'title' => $contact['title']
 				];
 			}
 		}
@@ -383,6 +497,18 @@ class Bo
 		$start_time = strtotime($args['start_time']);
 		$end_time = isset($args['end_time']) ? strtotime($args['end_time']) : $start_time + 3600; // Default 1 hour
 		
+		$participants = [$GLOBALS['egw_info']['user']['account_id'] => 'A'];
+		
+		// Add attendees if provided
+		if (!empty($args['attendees'])) {
+			foreach ($args['attendees'] as $email) {
+				$account = $GLOBALS['egw']->accounts->name2id($email, 'account_email');
+				if ($account) {
+					$participants[$account] = 'U'; // Unknown status
+				}
+			}
+		}
+		
 		$event_data = [
 			'title' => $args['title'],
 			'description' => $args['description'] ?? '',
@@ -390,7 +516,7 @@ class Bo
 			'end' => $end_time,
 			'location' => $args['location'] ?? '',
 			'owner' => $GLOBALS['egw_info']['user']['account_id'],
-			'participants' => [$GLOBALS['egw_info']['user']['account_id'] => 'A']
+			'participants' => $participants
 		];
 		
 		$event_id = $cal->save($event_data);
@@ -403,6 +529,154 @@ class Bo
 			];
 		} else {
 			throw new \Exception('Failed to create calendar event');
+		}
+	}
+	
+	/**
+	 * Search calendar events using EGroupware internal API
+	 */
+	private function search_calendar_events_internal($args)
+	{
+		if (!class_exists('calendar_bo')) {
+			throw new \Exception('Calendar application not available');
+		}
+		
+		$cal = new \calendar_bo();
+		
+		$start_date = isset($args['start_date']) ? strtotime($args['start_date']) : time();
+		$end_date = isset($args['end_date']) ? strtotime($args['end_date']) : strtotime('+1 month');
+		
+		$events = $cal->search([
+			'start' => $start_date,
+			'end' => $end_date,
+			'users' => $GLOBALS['egw_info']['user']['account_id'],
+			'query' => $args['query'] ?? ''
+		]);
+		
+		$formatted_results = [];
+		if ($events) {
+			$count = 0;
+			foreach ($events as $event) {
+				if ($count >= ($args['limit'] ?? 10)) break;
+				
+				$formatted_results[] = [
+					'id' => $event['id'],
+					'title' => $event['title'],
+					'description' => $event['description'],
+					'start_time' => date('Y-m-d H:i', $event['start']),
+					'end_time' => date('Y-m-d H:i', $event['end']),
+					'location' => $event['location']
+				];
+				$count++;
+			}
+		}
+		
+		return [
+			'success' => true,
+			'results' => $formatted_results,
+			'count' => count($formatted_results)
+		];
+	}
+	
+	/**
+	 * Send email using EGroupware internal API
+	 */
+	private function send_email_internal($args)
+	{
+		if (!class_exists('mail_bo')) {
+			throw new \Exception('Mail application not available');
+		}
+		
+		$mail = new \mail_bo();
+		
+		$to = is_array($args['to']) ? implode(', ', $args['to']) : $args['to'];
+		$cc = !empty($args['cc']) ? (is_array($args['cc']) ? implode(', ', $args['cc']) : $args['cc']) : '';
+		$bcc = !empty($args['bcc']) ? (is_array($args['bcc']) ? implode(', ', $args['bcc']) : $args['bcc']) : '';
+		
+		$email_data = [
+			'to' => $to,
+			'cc' => $cc,
+			'bcc' => $bcc,
+			'subject' => $args['subject'],
+			'body' => $args['body'],
+			'content_type' => 'text/plain'
+		];
+		
+		try {
+			$result = $mail->send($email_data);
+			
+			return [
+				'success' => true,
+				'message' => "Email sent successfully to: $to"
+			];
+		} catch (\Exception $e) {
+			throw new \Exception('Failed to send email: ' . $e->getMessage());
+		}
+	}
+	
+	/**
+	 * Create task using EGroupware internal API
+	 */
+	private function create_task_internal($args)
+	{
+		if (!class_exists('infolog_bo')) {
+			throw new \Exception('InfoLog application not available');
+		}
+		
+		$infolog = new \infolog_bo();
+		
+		$task_data = [
+			'info_type' => 'task',
+			'info_subject' => $args['title'],
+			'info_des' => $args['description'] ?? '',
+			'info_startdate' => time(),
+			'info_priority' => $this->map_priority($args['priority'] ?? 'normal'),
+			'info_responsible' => $GLOBALS['egw_info']['user']['account_id'],
+			'info_owner' => $GLOBALS['egw_info']['user']['account_id']
+		];
+		
+		// Set due date if provided
+		if (!empty($args['due_date'])) {
+			$task_data['info_enddate'] = strtotime($args['due_date']);
+		}
+		
+		// Assign to user if provided
+		if (!empty($args['assigned_to'])) {
+			$account = $GLOBALS['egw']->accounts->name2id($args['assigned_to'], 'account_email');
+			if ($account) {
+				$task_data['info_responsible'] = $account;
+			}
+		}
+		
+		// Set category if provided
+		if (!empty($args['category'])) {
+			$task_data['info_cat'] = $args['category'];
+		}
+		
+		$task_id = $infolog->write($task_data);
+		
+		if ($task_id) {
+			return [
+				'success' => true,
+				'task_id' => $task_id,
+				'message' => "Task '{$args['title']}' created successfully"
+			];
+		} else {
+			throw new \Exception('Failed to create task');
+		}
+	}
+	
+	/**
+	 * Map priority strings to InfoLog priority numbers
+	 */
+	private function map_priority($priority)
+	{
+		switch (strtolower($priority)) {
+			case 'low': return 1;
+			case 'normal': return 2;
+			case 'high': return 3;
+			case 'urgent': return 4;
+			default: return 2; // normal
 		}
 	}
 

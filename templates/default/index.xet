@@ -2,42 +2,56 @@
 <!DOCTYPE overlay PUBLIC "-//EGroupware GmbH//eTemplate 2.0//EN" "https://www.egroupware.org/etemplate2.0.dtd">
 <overlay>
 	<template id="aiassistant.index" template="" lang="" group="0" version="1.0.0">
-		<grid width="100%">
-			<columns>
-				<column width="100%"/>
-			</columns>
-			<rows>
-				<row class="dialogHeadbar" >
-					<et2-hbox  span="all" width="100%">
-						<et2-image  src="ai-assistant/navbar" align="left"></et2-image>
-						<et2-vbox class="dialogHeader">
-							<et2-description  value="AI Assistant" class="dialogHeader"></et2-description>
-							<et2-description  value="Natural language interface to EGroupware" class="dialogSubHeader"></et2-description>
-						</et2-vbox>
+		<et2-vbox class="aiassistant_container">
+			<et2-vbox class="aiassistant_chat_wrapper">
+				<!-- Header -->
+				<et2-hbox class="aiassistant_header">
+					<et2-description class="aiassistant_title" value="EGroupware AI Assistant"></et2-description>
+					<et2-description class="aiassistant_status_indicator" value="Ready"></et2-description>
+				</et2-hbox>
+				
+				<!-- Messages Area -->
+				<et2-box id="messages_container" class="aiassistant_messages">
+					<div class="aiassistant_empty_state">
+						<div class="aiassistant_empty_icon">🤖</div>
+						<div class="aiassistant_empty_title">Welcome to AI Assistant</div>
+						<div class="aiassistant_empty_text">
+							I can help you manage your EGroupware data. Ask me to create contacts, 
+							schedule calendar events, search information, send emails, or manage tasks.
+							Just type your request below!
+						</div>
+					</div>
+				</et2-box>
+				
+				<!-- Input Section -->
+				<et2-vbox class="aiassistant_input_section">
+					<et2-hbox class="aiassistant_input_row">
+						<et2-textarea 
+							id="message_input" 
+							class="aiassistant_input_field" 
+							placeholder="Ask me to create a contact, schedule a meeting, search data..."
+							onkeydown="app.aiassistant.handle_keypress">
+						</et2-textarea>
+						<et2-button 
+							id="send_button" 
+							class="aiassistant_send_btn" 
+							label="→" 
+							onclick="app.aiassistant.send_message" 
+							title="Send message">
+						</et2-button>
 					</et2-hbox>
-				</row>
-				<row class="row" height="400px">
-					<et2-vbox width="100%" height="100%">
-						<!-- Chat History Container -->
-						<et2-box id="chat-container" class="chat-container" height="350px" style="overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background: #f9f9f9;">
-							<et2-description id="chat-history" value="Welcome! How can I help you with EGroupware today?" class="chat-message"></et2-description>
-						</et2-box>
-						
-						<!-- Input Area -->
-						<et2-hbox width="100%" class="chat-input-area">
-							<et2-textbox id="message-input" placeholder="Type your message here..." width="85%" onchange="app.aiassistant.send_message"></et2-textbox>
-							<et2-button id="send-button" label="Send" onclick="app.aiassistant.send_message" class="et2_button_text"></et2-button>
-							<et2-button id="clear-button" label="Clear" onclick="app.aiassistant.clear_history" class="et2_button_text"></et2-button>
-						</et2-hbox>
-					</et2-vbox>
-				</row>
-				<row class="dialogFooterToolbar">
-					<et2-hbox span="all" width="100%">
-						<et2-description value="Status: Ready" id="status-text" class="status"></et2-description>
-						<et2-button id="close-button" label="Close" onclick="window.close" align="right" class="et2_button_cancel"></et2-button>
+					
+					<et2-hbox class="aiassistant_controls">
+						<et2-description id="status_message" class="aiassistant_status" value="Ready to help"></et2-description>
+						<et2-button 
+							id="clear_button" 
+							label="Clear Chat" 
+							onclick="app.aiassistant.clear_history" 
+							class="aiassistant_clear_btn">
+						</et2-button>
 					</et2-hbox>
-				</row>
-			</rows>
-		</grid>
+				</et2-vbox>
+			</et2-vbox>
+		</et2-vbox>
 	</template>
 </overlay>

@@ -1,0 +1,9 @@
+"use strict";
+var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
+    if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
+    return cooked;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var lit_1 = require("lit");
+exports.default = lit_1.css(templateObject_1 || (templateObject_1 = __makeTemplateObject(["\n\t:host {\n\t\tdisplay: flex;\n\t}\n\n\t:host([loading]) .file__button et2-image {\n\t\tdisplay: none;\n\t}\n\n\t:host([readonly]) .file__button {\n\t\tdisplay: none;\n\t}\n\t.file {\n\t\twidth: 100%;\n\t}\n\t.file--single > div {\n\t\tdisplay: flex;\n\t\tflex-direction: row;\n\t\tflex-wrap: nowrap;\n\t}\n\n\t.file__file-list {\n\t\twidth: 100%;\n\t}\n\t.file__file-list::part(popup) {\n\t\tmin-width: 25em;\n\t\tbackground-color: var(--sl-panel-background-color);\n\t\toverflow-y: auto;\n\t\tz-index: 100;\n\t}\n\n\n\t/**\n\t * Single display (multiple=false) match height\n\t * (multiple or readonly look weird with this, so don't change them)\n\t */\n\n\t.file--single et2-file-item[display=\"small\"]::part(base) {\n\t\theight: 100%;\n\t}\n"], ["\n\t:host {\n\t\tdisplay: flex;\n\t}\n\n\t:host([loading]) .file__button et2-image {\n\t\tdisplay: none;\n\t}\n\n\t:host([readonly]) .file__button {\n\t\tdisplay: none;\n\t}\n\t.file {\n\t\twidth: 100%;\n\t}\n\t.file--single > div {\n\t\tdisplay: flex;\n\t\tflex-direction: row;\n\t\tflex-wrap: nowrap;\n\t}\n\n\t.file__file-list {\n\t\twidth: 100%;\n\t}\n\t.file__file-list::part(popup) {\n\t\tmin-width: 25em;\n\t\tbackground-color: var(--sl-panel-background-color);\n\t\toverflow-y: auto;\n\t\tz-index: 100;\n\t}\n\n\n\t/**\n\t * Single display (multiple=false) match height\n\t * (multiple or readonly look weird with this, so don't change them)\n\t */\n\n\t.file--single et2-file-item[display=\"small\"]::part(base) {\n\t\theight: 100%;\n\t}\n"])));
+var templateObject_1;

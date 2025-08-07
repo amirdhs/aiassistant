@@ -22,7 +22,7 @@ class AIAssistantApp extends EgwApp
 	{
 		super.et2_ready(et2, name);
 
-		if (name === 'ai-assistant.index') {
+		if (name === 'aiassistant.index') {
 			this.init_ai_assistant();
 		}
 	}
@@ -32,13 +32,14 @@ class AIAssistantApp extends EgwApp
 	 */
 	init_ai_assistant()
 	{
-		this.load_chat_history();
-		
 		// Set focus on input field
 		var input = this.et2.getWidgetById('message_input');
 		if (input) {
 			input.focus();
 		}
+		
+		// Load and display chat history
+		this.load_chat_history();
 		
 		// Auto-scroll to bottom of messages
 		this.scroll_to_bottom();
@@ -49,9 +50,9 @@ class AIAssistantApp extends EgwApp
 	 */
 	handle_keypress(event)
 	{
-		if (event.keyCode === 13 && !event.shiftKey) { // Enter key without Shift
+		if (event.key === 'Enter' && !event.shiftKey) { // Enter key without Shift
 			event.preventDefault();
-			app.aiassistant.send_message();
+			this.send_message();
 		}
 	}
 	
@@ -65,7 +66,12 @@ class AIAssistantApp extends EgwApp
 		}
 		
 		var input = this.et2.getWidgetById('message_input');
-		var message = input ? input.get_value().trim() : '';
+		if (!input) {
+			console.error('Message input not found');
+			return;
+		}
+		
+		var message = input.get_value().trim();
 		
 		if (!message) {
 			return;
@@ -80,11 +86,11 @@ class AIAssistantApp extends EgwApp
 		// Show loading state
 		this.set_loading(true);
 		
-		// Send to server
-		egw.json('ai-assistant.EGroupware\\AIAssistant\\Ui.api', {
-			action: 'send_message',
-			message: message
-		}, this.handle_response, this, true, this).sendRequest();
+		// Send to server with proper parameter format
+		egw.json('aiassistant.EGroupware\\AIAssistant\\Ui.ajax_api', [
+			'send_message',
+			message
+		], this.handle_response.bind(this), this, true, this).sendRequest();
 	}
 	
 	/**
@@ -113,27 +119,91 @@ class AIAssistantApp extends EgwApp
 	}
 	
 	/**
-	 * Add a message to the chat display
+	 * Format message content for display
 	 */
-	add_message(type, content)
+	format_message_content(content: string): string
 	{
-		var container = this.et2.getWidgetById('messages_container');
-		if (!container) return;
+		if (!content) return '';
 		
-		var messageDiv = document.createElement('div');
-		messageDiv.className = 'message ' + type;
+		// Convert newlines to HTML breaks
+		content = content.replace(/\n/g, '<br>');
 		
-		var contentDiv = document.createElement('div');
-		contentDiv.className = 'message-content';
-		contentDiv.textContent = content;
+		// Basic markdown-like formatting
+		content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+		content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
+		content = content.replace(/`(.*?)`/g, '<code>$1</code>');
 		
-		messageDiv.appendChild(contentDiv);
-		container.getDOMNode().appendChild(messageDiv);
+		// Convert URLs to links
+		content = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
 		
-		this.scroll_to_bottom();
+		return content;
 	}
-	
+
 	/**
+	 * Add a message to the chat interface
+	 */
+	add_message(content: string, type: 'user' | 'assistant' | 'error' | 'tool', timestamp?: string, tool_name?: string, tool_args?: any)
+	{
+		const messagesContainer = this.et2.getWidgetById('messages_container');
+		if (!messagesContainer) return;
+
+		// Remove empty state if it exists
+		const emptyState = messagesContainer.getDOMNode().querySelector('.aiassistant_empty_state');
+		if (emptyState) {
+			emptyState.remove();
+		}
+
+		// Create message element
+		const messageDiv = document.createElement('div');
+		messageDiv.className = `aiassistant_message ${type}`;
+
+		// Create avatar
+		const avatar = document.createElement('div');
+		avatar.className = 'aiassistant_avatar';
+		avatar.textContent = type === 'user' ? 'U' : (type === 'assistant' ? 'AI' : '🔧');
+
+		// Create message content
+		const messageContent = document.createElement('div');
+		messageContent.className = 'aiassistant_message_content';
+
+		if (type === 'tool') {
+			// Special formatting for tool messages
+			messageContent.className = 'aiassistant_tool_message';
+			messageContent.innerHTML = `
+				<div class="aiassistant_tool_header">
+					<span class="aiassistant_tool_icon">🔧</span>
+					<span>Using ${tool_name || 'tool'}</span>
+				</div>
+				<div>${this.format_message_content(content)}</div>
+				${tool_args ? `<details class="aiassistant_tool_details">
+					<summary>Details</summary>
+					<pre class="aiassistant_tool_args">${JSON.stringify(tool_args, null, 2)}</pre>
+				</details>` : ''}
+			`;
+		} else {
+			messageContent.innerHTML = this.format_message_content(content);
+		}
+
+		// Add timestamp
+		if (timestamp) {
+			const timeDiv = document.createElement('div');
+			timeDiv.className = 'aiassistant_message_time';
+			timeDiv.textContent = new Date(timestamp).toLocaleTimeString();
+			messageContent.appendChild(timeDiv);
+		}
+
+		// Append elements
+		if (type === 'user') {
+			messageDiv.appendChild(messageContent);
+			messageDiv.appendChild(avatar);
+		} else {
+			messageDiv.appendChild(avatar);
+			messageDiv.appendChild(messageContent);
+		}
+
+		messagesContainer.getDOMNode().appendChild(messageDiv);
+		this.scroll_to_bottom();
+	}	/**
 	 * Add a tool call display
 	 */
 	add_tool_call(tool_call)
@@ -141,24 +211,67 @@ class AIAssistantApp extends EgwApp
 		var container = this.et2.getWidgetById('messages_container');
 		if (!container) return;
 		
+		var containerNode = container.getDOMNode();
+		
 		var toolDiv = document.createElement('div');
-		toolDiv.className = 'message tool';
+		toolDiv.className = 'aiassistant_message tool';
+		
+		var avatarDiv = document.createElement('div');
+		avatarDiv.className = 'aiassistant_avatar';
+		avatarDiv.style.background = 'linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%)';
+		avatarDiv.textContent = '🔧';
 		
 		var toolContent = document.createElement('div');
-		toolContent.className = 'tool-call';
+		toolContent.className = 'aiassistant_message_bubble aiassistant_tool_bubble';
 		
-		var toolName = document.createElement('div');
-		toolName.className = 'tool-name';
-		toolName.textContent = '🔧 ' + tool_call.function.name;
+		var toolHeader = document.createElement('div');
+		toolHeader.className = 'aiassistant_tool_header';
+		toolHeader.innerHTML = `<span class="aiassistant_tool_icon">🛠️</span> <strong>${tool_call.function.name}</strong>`;
 		
-		var toolArgs = document.createElement('div');
-		toolArgs.textContent = JSON.stringify(tool_call.function.arguments, null, 2);
+		var toolArgs = document.createElement('details');
+		toolArgs.className = 'aiassistant_tool_details';
 		
-		toolContent.appendChild(toolName);
+		var summary = document.createElement('summary');
+		summary.textContent = 'View Parameters';
+		summary.style.cursor = 'pointer';
+		summary.style.color = '#667eea';
+		
+		var argsContent = document.createElement('pre');
+		argsContent.className = 'aiassistant_tool_args';
+		argsContent.textContent = JSON.stringify(tool_call.function.arguments, null, 2);
+		
+		toolArgs.appendChild(summary);
+		toolArgs.appendChild(argsContent);
+		
+		toolContent.appendChild(toolHeader);
 		toolContent.appendChild(toolArgs);
+		
+		if (tool_call.result) {
+			var resultDiv = document.createElement('div');
+			resultDiv.className = 'aiassistant_tool_result';
+			resultDiv.style.marginTop = '12px';
+			resultDiv.style.padding = '12px';
+			resultDiv.style.borderRadius = '8px';
+			
+			if (tool_call.result.success) {
+				resultDiv.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
+				resultDiv.style.border = '1px solid #b8dacc';
+				resultDiv.style.color = '#155724';
+				resultDiv.innerHTML = `<strong>✅ Success:</strong> ${tool_call.result.message || 'Operation completed'}`;
+			} else {
+				resultDiv.style.background = 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)';
+				resultDiv.style.border = '1px solid #f1b0b7';
+				resultDiv.style.color = '#721c24';
+				resultDiv.innerHTML = `<strong>❌ Error:</strong> ${tool_call.result.error || 'Operation failed'}`;
+			}
+			
+			toolContent.appendChild(resultDiv);
+		}
+		
+		toolDiv.appendChild(avatarDiv);
 		toolDiv.appendChild(toolContent);
 		
-		container.getDOMNode().appendChild(toolDiv);
+		containerNode.appendChild(toolDiv);
 		
 		this.scroll_to_bottom();
 	}
@@ -171,20 +284,82 @@ class AIAssistantApp extends EgwApp
 		this.isLoading = loading;
 		
 		var sendButton = this.et2.getWidgetById('send_button');
-		var statusContainer = this.et2.getWidgetById('status_container');
 		var statusMessage = this.et2.getWidgetById('status_message');
 		
 		if (sendButton) {
 			sendButton.set_disabled(loading);
 		}
 		
-		if (statusContainer && statusMessage) {
+		if (statusMessage) {
 			if (loading) {
-				statusMessage.set_value('AI is thinking...');
-				statusContainer.set_disabled(false);
+				statusMessage.set_value('🤔 AI is thinking...');
+				statusMessage.set_class('aiassistant_status loading');
 			} else {
-				statusContainer.set_disabled(true);
+				statusMessage.set_value('✅ Ready');
+				statusMessage.set_class('aiassistant_status connected');
 			}
+		}
+		
+		// Add/remove typing indicator
+		if (loading) {
+			this.add_typing_indicator();
+		} else {
+			this.remove_typing_indicator();
+		}
+	}
+	
+	/**
+	 * Add typing indicator
+	 */
+	add_typing_indicator()
+	{
+		var container = this.et2.getWidgetById('messages_container');
+		if (!container) return;
+		
+		var containerNode = container.getDOMNode();
+		
+		// Remove existing typing indicator
+		var existing = containerNode.querySelector('.aiassistant_typing_indicator');
+		if (existing) {
+			existing.remove();
+		}
+		
+		// Create typing indicator
+		var typingDiv = document.createElement('div');
+		typingDiv.className = 'aiassistant_message assistant aiassistant_typing_indicator';
+		
+		var avatarDiv = document.createElement('div');
+		avatarDiv.className = 'aiassistant_avatar';
+		avatarDiv.textContent = 'AI';
+		
+		var bubbleDiv = document.createElement('div');
+		bubbleDiv.className = 'aiassistant_message_bubble';
+		bubbleDiv.style.padding = '16px 20px';
+		
+		var dotsDiv = document.createElement('div');
+		dotsDiv.className = 'aiassistant_typing_dots';
+		dotsDiv.innerHTML = '<span></span><span></span><span></span>';
+		
+		bubbleDiv.appendChild(dotsDiv);
+		typingDiv.appendChild(avatarDiv);
+		typingDiv.appendChild(bubbleDiv);
+		
+		containerNode.appendChild(typingDiv);
+		this.scroll_to_bottom();
+	}
+	
+	/**
+	 * Remove typing indicator
+	 */
+	remove_typing_indicator()
+	{
+		var container = this.et2.getWidgetById('messages_container');
+		if (!container) return;
+		
+		var containerNode = container.getDOMNode();
+		var indicator = containerNode.querySelector('.aiassistant_typing_indicator');
+		if (indicator) {
+			indicator.remove();
 		}
 	}
 	
@@ -194,7 +369,13 @@ class AIAssistantApp extends EgwApp
 	show_error(error)
 	{
 		egw.message(error, 'error');
-		this.add_message('assistant', 'Sorry, I encountered an error: ' + error);
+		this.add_message('❌ Sorry, I encountered an error: ' + error, 'error');
+		
+		var statusMessage = this.et2.getWidgetById('status_message');
+		if (statusMessage) {
+			statusMessage.set_value('❌ Error occurred');
+			statusMessage.set_class('aiassistant_status disconnected');
+		}
 	}
 	
 	/**
@@ -202,9 +383,9 @@ class AIAssistantApp extends EgwApp
 	 */
 	load_chat_history()
 	{
-		egw.json('ai-assistant.EGroupware\\AIAssistant\\Ui.api', {
-			action: 'get_history'
-		}, this.display_history, this, true, this).sendRequest();
+		egw.json('aiassistant.EGroupware\\AIAssistant\\Ui.ajax_api', [
+			'get_history'
+		], this.display_history.bind(this), this, true, this).sendRequest();
 	}
 	
 	/**
@@ -212,15 +393,37 @@ class AIAssistantApp extends EgwApp
 	 */
 	display_history(data)
 	{
-		if (!data || !data.history) return;
+		if (!data || !data.history || data.history.length === 0) {
+			return; // Keep empty state
+		}
+		
+		// Clear empty state first
+		var container = this.et2.getWidgetById('messages_container');
+		if (container) {
+			var containerNode = container.getDOMNode();
+			var emptyState = containerNode.querySelector('.aiassistant_empty_state');
+			if (emptyState) {
+				emptyState.remove();
+			}
+		}
 		
 		for (var i = 0; i < data.history.length; i++) {
 			var entry = data.history[i];
 			this.add_message(entry.message_type, entry.message_content);
 			
 			if (entry.tool_calls) {
-				for (var j = 0; j < entry.tool_calls.length; j++) {
-					this.add_tool_call(entry.tool_calls[j]);
+				try {
+					var toolCalls = typeof entry.tool_calls === 'string' 
+						? JSON.parse(entry.tool_calls) 
+						: entry.tool_calls;
+					
+					if (Array.isArray(toolCalls)) {
+						for (var j = 0; j < toolCalls.length; j++) {
+							this.add_tool_call(toolCalls[j]);
+						}
+					}
+				} catch (e) {
+					console.warn('Failed to parse tool calls:', e);
 				}
 			}
 		}
@@ -232,12 +435,12 @@ class AIAssistantApp extends EgwApp
 	clear_history()
 	{
 		Et2Dialog.show_dialog(
-			function(button) {
-				if (button === et2_dialog.YES_BUTTON) {
-					app['ai-assistant'].do_clear_history();
+			(button) => {
+				if (button === Et2Dialog.YES_BUTTON) {
+					this.do_clear_history();
 				}
 			},
-			'Are you sure you want to clear your chat history?',
+			'Are you sure you want to clear your chat history? This action cannot be undone.',
 			'Clear Chat History',
 			{},
 			Et2Dialog.BUTTONS_YES_NO,
@@ -250,9 +453,9 @@ class AIAssistantApp extends EgwApp
 	 */
 	do_clear_history()
 	{
-		egw.json('ai-assistant.EGroupware\\AIAssistant\\Ui.api', {
-			action: 'clear_history'
-		}, this.handle_clear_response, this, true, this).sendRequest();
+		egw.json('aiassistant.EGroupware\\AIAssistant\\Ui.ajax_api', [
+			'clear_history'
+		], this.handle_clear_response.bind(this), this, true, this).sendRequest();
 	}
 	
 	/**
@@ -264,21 +467,39 @@ class AIAssistantApp extends EgwApp
 			// Clear the display
 			var container = this.et2.getWidgetById('messages_container');
 			if (container) {
-				var domNode = container.getDOMNode();
-				while (domNode.firstChild) {
-					domNode.removeChild(domNode.firstChild);
+				var containerNode = container.getDOMNode();
+				
+				// Clear all messages
+				while (containerNode.firstChild) {
+					containerNode.removeChild(containerNode.firstChild);
 				}
 				
-				// Add welcome message back
-				var welcomeDiv = document.createElement('div');
-				welcomeDiv.className = 'ai-assistant-welcome';
-				welcomeDiv.textContent = "Welcome! I'm your EGroupware AI assistant. I can help you manage contacts, calendar events, and more.";
-				domNode.appendChild(welcomeDiv);
+				// Add empty state back
+				var emptyStateDiv = document.createElement('div');
+				emptyStateDiv.className = 'aiassistant_empty_state';
+				
+				var iconDiv = document.createElement('div');
+				iconDiv.className = 'aiassistant_empty_icon';
+				iconDiv.textContent = '🤖';
+				
+				var titleDiv = document.createElement('div');
+				titleDiv.className = 'aiassistant_empty_title';
+				titleDiv.textContent = 'Welcome to AI Assistant';
+				
+				var textDiv = document.createElement('div');
+				textDiv.className = 'aiassistant_empty_text';
+				textDiv.textContent = 'I can help you manage your EGroupware data. Ask me to create contacts, schedule calendar events, search information, send emails, or manage tasks. Just type your request below!';
+				
+				emptyStateDiv.appendChild(iconDiv);
+				emptyStateDiv.appendChild(titleDiv);
+				emptyStateDiv.appendChild(textDiv);
+				
+				containerNode.appendChild(emptyStateDiv);
 			}
 			
 			egw.message('Chat history cleared successfully', 'success');
 		} else {
-			egw.message('Failed to clear chat history', 'error');
+			egw.message('Failed to clear chat history: ' + (data.error || 'Unknown error'), 'error');
 		}
 	}
 	
@@ -287,12 +508,11 @@ class AIAssistantApp extends EgwApp
 	 */
 	scroll_to_bottom()
 	{
-		var self = this;
-		setTimeout(function() {
-			var container = self.et2.getWidgetById('messages_container');
+		setTimeout(() => {
+			var container = this.et2.getWidgetById('messages_container');
 			if (container) {
-				var domNode = container.getDOMNode();
-				domNode.scrollTop = domNode.scrollHeight;
+				var containerNode = container.getDOMNode();
+				containerNode.scrollTop = containerNode.scrollHeight;
 			}
 		}, 100);
 	}

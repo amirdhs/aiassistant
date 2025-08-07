@@ -115,7 +115,7 @@ class Hooks
 			}
 			
 			// Add chat history management
-			$file['Clear History'] = "javascript:if(confirm('".lang('Clear all chat history?')."')){egw.json('ai-assistant.EGroupware\\\\AIAssistant\\\\Ui.api',{action:'clear_history'}).sendRequest();}";
+			$file['Clear History'] = "javascript:if(confirm('".lang('Clear all chat history?')."')){egw.json('aiassistant.EGroupware\\\\AIAssistant\\\\Ui.ajax_api',{action:'clear_history'}).sendRequest();}";
 			
 			display_sidebox($appname, lang('AI Assistant'), $file);
 
@@ -273,83 +273,74 @@ class Hooks
 	}
 
 	/**
-	 * Hook for admin configuration
+	 * Hook called for config values
 	 *
-	 * @param string|array $data hook-data or location
-	 * @return array configuration options
+	 * @param array $data
+	 * @return array with config values or sel_options
 	 */
 	public static function config($data)
 	{
 		unset($data);	// not used, but required by function signature
 
+		// Return select options for dropdowns
 		return array(
-			'ai_api_url' => array(
-				'type' => 'input',
-				'label' => 'AI API URL',
-				'help' => 'URL for the AI service endpoint (e.g., https://models.inference.ai.azure.com)',
-				'default' => 'https://models.inference.ai.azure.com',
-			),
-			'ai_api_key' => array(
-				'type' => 'password',
-				'label' => 'AI API Key',
-				'help' => 'API key for authenticating with the AI service',
-			),
-			'ai_model' => array(
-				'type' => 'input',
-				'label' => 'Default AI Model',
-				'help' => 'Default AI model to use (e.g., gpt-4o-mini)',
-				'default' => 'gpt-4o-mini',
-			),
-			'max_history_length' => array(
-				'type' => 'input',
-				'label' => 'Maximum Chat History Length',
-				'help' => 'Maximum number of chat messages to store per user',
-				'default' => '100',
-			),
-			'request_timeout' => array(
-				'type' => 'input',
-				'label' => 'Request Timeout (seconds)',
-				'help' => 'Timeout for AI API requests in seconds',
-				'default' => '30',
-			),
-			'enable_debug_logging' => array(
-				'type' => 'check',
-				'label' => 'Enable Debug Logging',
-				'help' => 'Log AI requests and responses for debugging',
-				'default' => '0',
-			),
-			'allowed_tools' => array(
-				'type' => 'multiselect',
-				'label' => 'Allowed Tools',
-				'help' => 'Which tools the AI is allowed to execute',
-				'values' => array(
-					'create_contact' => 'Create Contacts',
-					'search_contacts' => 'Search Contacts',
-					'create_calendar_event' => 'Create Calendar Events',
-					'search_calendar_events' => 'Search Calendar Events',
-					'create_project' => 'Create Projects',
-					'search_projects' => 'Search Projects',
-				),
-				'default' => 'create_contact,search_contacts,create_calendar_event',
-			),
-			'rate_limit_enabled' => array(
-				'type' => 'check',
-				'label' => 'Enable Rate Limiting',
-				'help' => 'Limit the number of AI requests per user',
-				'default' => '1',
-			),
-			'rate_limit_requests_per_hour' => array(
-				'type' => 'input',
-				'label' => 'Requests per Hour',
-				'help' => 'Maximum AI requests per user per hour (if rate limiting enabled)',
-				'default' => '60',
-			),
-			'rate_limit_requests_per_day' => array(
-				'type' => 'input',
-				'label' => 'Requests per Day',
-				'help' => 'Maximum AI requests per user per day (if rate limiting enabled)',
-				'default' => '500',
-			),
+			'sel_options' => array(
+				'ai_model' => array(
+					'openai:gpt-4o' => 'OpenAI GPT-4o',
+					'openai:gpt-4o-mini' => 'OpenAI GPT-4o Mini',
+					'openai:gpt-4-turbo' => 'OpenAI GPT-4 Turbo',
+					'openai:gpt-3.5-turbo' => 'OpenAI GPT-3.5 Turbo',
+					'anthropic:claude-3-5-sonnet-20241022' => 'Anthropic Claude 3.5 Sonnet',
+					'anthropic:claude-3-5-haiku-20241022' => 'Anthropic Claude 3.5 Haiku',
+					'anthropic:claude-3-opus-20240229' => 'Anthropic Claude 3 Opus',
+					'google:gemini-1.5-pro' => 'Google Gemini 1.5 Pro',
+					'google:gemini-1.5-flash' => 'Google Gemini 1.5 Flash',
+					'azure:gpt-4o' => 'Azure OpenAI GPT-4o',
+					'azure:gpt-4o-mini' => 'Azure OpenAI GPT-4o Mini',
+				)
+			)
+		);
+	}
+
+	/**
+	 * Hook called for config validation
+	 *
+	 * @param array $data
+	 */
+	public static function config_validate($data)
+	{
+		// Auto-populate API URL based on selected model
+		if (!empty($data['newsettings']['ai_model'])) {
+			$model = $data['newsettings']['ai_model'];
+			$urlMapping = self::getModelUrlMapping();
+			
+			if (isset($urlMapping[$model])) {
+				$data['newsettings']['ai_api_url'] = $urlMapping[$model];
+			}
+		}
+		
+		return $data;
+	}
+
+	/**
+	 * Get URL mapping for different AI models
+	 *
+	 * @return array
+	 */
+	private static function getModelUrlMapping()
+	{
+		return array(
+			'openai:gpt-4o' => 'https://api.openai.com/v1',
+			'openai:gpt-4o-mini' => 'https://api.openai.com/v1',
+			'openai:gpt-4-turbo' => 'https://api.openai.com/v1',
+			'openai:gpt-3.5-turbo' => 'https://api.openai.com/v1',
+			'anthropic:claude-3-5-sonnet-20241022' => 'https://api.anthropic.com/v1',
+			'anthropic:claude-3-5-haiku-20241022' => 'https://api.anthropic.com/v1',
+			'anthropic:claude-3-opus-20240229' => 'https://api.anthropic.com/v1',
+			'google:gemini-1.5-pro' => 'https://generativelanguage.googleapis.com/v1',
+			'google:gemini-1.5-flash' => 'https://generativelanguage.googleapis.com/v1',
+			'azure:gpt-4o' => 'https://models.inference.ai.azure.com',
+			'azure:gpt-4o-mini' => 'https://models.inference.ai.azure.com',
 		);
 	}
 

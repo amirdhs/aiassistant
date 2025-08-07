@@ -27,7 +27,7 @@ class Ui
 		'edit' => true,
 		'list' => true,
 		'dialog' => true,
-		'api' => true,
+		'ajax_api' => true,
 		'action' => true,
 	];
 
@@ -348,17 +348,21 @@ class Ui
 	/**
 	 * AJAX API endpoint for chat interactions
 	 */
-	public function api()
+	public function ajax_api()
 	{
 		Api\Json\Response::get();
 		
-		$action = $_REQUEST['action'] ?? '';
+		// Get parameters from egw.json call
+		$params = func_get_args();
+		$action = $params[0] ?? $_REQUEST['action'] ?? '';
+		
 		$bo = new Bo();
 		
 		try {
 			switch ($action) {
 				case 'send_message':
-					$message = $_REQUEST['message'] ?? '';
+					$message = $params[1] ?? $_REQUEST['message'] ?? '';
+					
 					if (empty($message)) {
 						throw new \Exception('Message cannot be empty');
 					}

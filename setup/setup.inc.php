@@ -12,7 +12,7 @@ use EGroupware\AIAssistant\Bo;
 
 $setup_info['aiassistant']['name']      = 'aiassistant';
 $setup_info['aiassistant']['title']     = 'AI Assistant';
-$setup_info['aiassistant']['version']   = '1.0';
+$setup_info['aiassistant']['version']   = '1.0.2';
 $setup_info['aiassistant']['app_order'] = 60;
 $setup_info['aiassistant']['enable']    = 5;    // do NOT show in navbar
 $setup_info['aiassistant']['index']     = 'aiassistant.'.EGroupware\AIAssistant\Ui::class.'.index&ajax=true';
@@ -46,6 +46,7 @@ $setup_info['aiassistant']['hooks']['sidebox_menu'] = Hooks::class.'::all_hooks'
 $setup_info['aiassistant']['hooks']['settings'] = Hooks::class.'::settings';
 $setup_info['aiassistant']['hooks']['search_link'] = Hooks::class.'::search_link';
 $setup_info['aiassistant']['hooks']['config'] = Hooks::class.'::config';
+$setup_info['aiassistant']['hooks']['config_validate'] = Hooks::class.'::config_validate';
 $setup_info['aiassistant']['hooks']['acl_rights'] = Hooks::class.'::acl_rights';
 $setup_info['aiassistant']['hooks']['categories'] = Hooks::class.'::categories';
 $setup_info['aiassistant']['hooks']['export_limit'] = Hooks::class.'::getAppExportLimit';
@@ -56,7 +57,7 @@ $setup_info['aiassistant']['config'][] = array(
     'name'    => 'ai_api_url',
     'label'   => 'AI API URL',
     'type'    => 'input',
-    'default' => 'https://models.inference.ai.azure.com'
+    'default' => 'https://api.openai.com/v1'
 );
 
 $setup_info['aiassistant']['config'][] = array(

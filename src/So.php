@@ -105,7 +105,7 @@ class So
 	/**
 	 * Set configuration value
 	 */
-	public function set_config($name, $value)
+	public function save_config($name, $value)
 	{
 		Api\Config::save_value($name, $value, self::APP);
 		return true;
@@ -114,13 +114,13 @@ class So
 	/**
 	 * Get user-specific configuration
 	 */
-	public function get_user_config($name, $account_id, $default = null)
+	public function get_user_config($account_id, $name, $default = null)
 	{
 		return $this->db->select(
 			'egw_ai_assistant_config',
 			'config_value',
 			[
-				'config_app' => 'ai-assistant',
+				'config_app' => 'aiassistant',
 				'config_name' => $name,
 				'account_id' => $account_id
 			],
@@ -129,16 +129,19 @@ class So
 			false,
 			'',
 			self::APP,
-		)->fetchColumn('config_value') ?: $this->get_config($name, $default); // Fall back to global config
+		)->fetchColumn() ?: $this->get_config($name, $default); // Fall back to global config
 	}
 	
 	/**
 	 * Set user-specific configuration
 	 */
-	public function set_user_config($name, $value, $account_id)
+	public function save_user_config($account_id, $name, $value)
 	{
+		$now = time();
 		return $this->db->insert('egw_ai_assistant_config', [
 		   'config_value' => $value,
+		   'created' => $now,
+		   'modified' => $now
 	   ], [
 		   'config_app' => self::APP,
 		   'config_name' => $name,
@@ -280,6 +283,9 @@ class So
 			$id = $data['history_id'];
 			unset($data['history_id']);
 			
+			// Set modified timestamp
+			$data['modified'] = time();
+			
 			$result = $this->db->update(
 				self::HISTORY_TABLE,
 				$data,
@@ -291,7 +297,11 @@ class So
 			
 			return $result ? $id : false;
 		}
+		
 		// Insert new record
+		$data['created'] = time();
+		$data['modified'] = time();
+		
 		return $this->db->insert(self::HISTORY_TABLE, $data, false, __LINE__, __FILE__, self::APP) ?
 			$this->db->get_last_insert_id(self::HISTORY_TABLE, 'history_id') : false;
 	}
