@@ -29,3 +29,8 @@ logs/
 
 # Cache
 cache/
+
+# Generated JavaScript files
+js/app.js
+js/app.min.js
+js/app.min.js.map
