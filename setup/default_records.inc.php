@@ -3,7 +3,7 @@
  * EGroupware AI Assistant
  *
  * @link https://www.egroupware.org
- * @package ai-assistant
+ * @package aiassistant
  * @copyright (c) 2025 EGroupware Team
  * @license http://opensource.org/licenses/gpl-license.php GPL - GNU General Public License
  */
