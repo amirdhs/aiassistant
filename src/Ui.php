@@ -2,13 +2,11 @@
 /**
  * EGroupware AI Assistant - User Interface
  *
- * @link http://www.egroupware.org
- * @package ai-assistant
+ * @link http://www.egroupware.org  
+ * @package aiassistant
  * @copyright (c) 2025 EGroupware Team
  * @license http://opensource.org/licenses/gpl-license.php GPL - GNU General Public License
- */
-
-namespace EGroupware\AIAssistant;
+ */namespace EGroupware\AIAssistant;
 
 use EGroupware\Api;
 
@@ -24,8 +22,19 @@ class Ui
 	 */
 	public $public_functions = [
 		'index' => true,
-		'edit' => true,
-		'list' => true,
+		'edit' => 			'view' => array(
+				'caption' => 'View',
+				'default' => true,
+				'allowOnMultiple' => false,
+				'url' => 'menuaction=aiassistant.EGroupware\\AIAssistant\\Ui.dialog&history_id=$id',
+				'popup' => '700x500',
+				'group' => $group = 1,
+			),
+			'continue_chat' => array(
+				'caption' => 'Continue Chat',
+				'allowOnMultiple' => false,
+				'url' => 'menuaction=aiassistant.EGroupware\\AIAssistant\\Ui.index&continue_from=$id',
+				'popup' => '850x600',' => true,
 		'dialog' => true,
 		'ajax_api' => true,
 		'action' => true,
@@ -506,14 +515,14 @@ class Ui
 				'caption' => 'View Details',
 				'default' => true,
 				'allowOnMultiple' => false,
-				'url' => 'menuaction=ai-assistant.EGroupware\\AIAssistant\\Ui.dialog&history_id=$id',
+				'url' => 'menuaction=aiassistant.EGroupware\\AIAssistant\\Ui.dialog&history_id=$id',
 				'popup' => '700x500',
 				'group' => $group = 1,
 			),
 			'continue_chat' => array(
 				'caption' => 'Continue Chat',
 				'allowOnMultiple' => false,
-				'url' => 'menuaction=ai-assistant.EGroupware\\AIAssistant\\Ui.index&continue_from=$id',
+				'url' => 'menuaction=aiassistant.EGroupware\\AIAssistant\\Ui.index&continue_from=$id',
 				'popup' => '850x600',
 				'group' => $group,
 			),
@@ -532,7 +541,7 @@ class Ui
 				'allowOnMultiple' => true,
 				'group' => $group,
 				'popup' => '400x300',
-				'url' => 'menuaction=ai-assistant.EGroupware\\AIAssistant\\Ui.export&selected=$id',
+				'url' => 'menuaction=aiassistant.EGroupware\\AIAssistant\\Ui.export&selected=$id',
 			),
 		);
 

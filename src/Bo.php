@@ -3,7 +3,7 @@
  * EGroupware AI Assistant - Business Logic
  *
  * @link http://www.egroupware.org  
- * @package ai-assistant
+ * @package aiassistant
  * @copyright (c) 2025 EGroupware Team
  * @license http://opensource.org/licenses/gpl-license.php GPL - GNU General Public License
  */
@@ -29,6 +29,43 @@ class Bo
 	public function __construct()
 	{
 		$this->so = new So();
+		
+		// Migrate old configuration on first use
+		$this->migrate_config_if_needed();
+	}
+	
+	/**
+	 * Migrate configuration from standard EGroupware config to custom table
+	 */
+	private function migrate_config_if_needed()
+	{
+		// Check if we already have config in custom table
+		$existing_config = $this->so->get_config('ai_api_key');
+		if ($existing_config) {
+			return; // Already migrated
+		}
+		
+		// Check if there's config in the old standard table
+		$old_config = Api\Config::read('aiassistant');
+		if (empty($old_config)) {
+			return; // No old config to migrate
+		}
+		
+		// Migrate the configuration
+		$config_keys = ['ai_model', 'ai_api_url', 'ai_api_key', 'max_history_length', 'temperature', 'max_tokens'];
+		$migrated_any = false;
+		
+		foreach ($config_keys as $key) {
+			if (isset($old_config[$key])) {
+				$this->so->save_config($key, $old_config[$key]);
+				$migrated_any = true;
+			}
+		}
+		
+		if ($migrated_any) {
+			// Log the migration
+			error_log("AI Assistant: Migrated configuration from egw_config to egw_ai_assistant_config");
+		}
 	}
 	
 	/**
@@ -706,7 +743,7 @@ class Bo
 		}
 		
 		// Add account filter if not admin
-		if (!$GLOBALS['egw']->acl->check('admin', 1, 'ai-assistant'))
+		if (!$GLOBALS['egw']->acl->check('admin', 1, 'aiassistant'))
 		{
 			$criteria['account_id'] = $account_id;
 		}
@@ -933,7 +970,7 @@ class Bo
 		// Only allow access to own conversations (unless admin)
 		$current_user = $GLOBALS['egw_info']['user']['account_id'];
 		if ($conversation['account_id'] != $current_user && 
-			!$GLOBALS['egw']->acl->check('admin', 1, 'ai-assistant'))
+			!$GLOBALS['egw']->acl->check('admin', 1, 'aiassistant'))
 		{
 			return false;
 		}

@@ -12,7 +12,7 @@ use EGroupware\AIAssistant\Bo;
 
 $setup_info['aiassistant']['name']      = 'aiassistant';
 $setup_info['aiassistant']['title']     = 'AI Assistant';
-$setup_info['aiassistant']['version']   = '1.0.2';
+$setup_info['aiassistant']['version']   = '1.0.3';
 $setup_info['aiassistant']['app_order'] = 60;
 $setup_info['aiassistant']['enable']    = 5;    // do NOT show in navbar
 $setup_info['aiassistant']['index']     = 'aiassistant.'.EGroupware\AIAssistant\Ui::class.'.index&ajax=true';
@@ -51,32 +51,3 @@ $setup_info['aiassistant']['hooks']['acl_rights'] = Hooks::class.'::acl_rights';
 $setup_info['aiassistant']['hooks']['categories'] = Hooks::class.'::categories';
 $setup_info['aiassistant']['hooks']['export_limit'] = Hooks::class.'::getAppExportLimit';
 $setup_info['aiassistant']['hooks']['delete_category'] = 'aiassistant.'.Bo::class.'.delete_category';
-
-/* Configuration options */
-$setup_info['aiassistant']['config'][] = array(
-    'name'    => 'ai_api_url',
-    'label'   => 'AI API URL',
-    'type'    => 'input',
-    'default' => 'https://api.openai.com/v1'
-);
-
-$setup_info['aiassistant']['config'][] = array(
-    'name'    => 'ai_api_key',
-    'label'   => 'AI API Key',
-    'type'    => 'password',
-    'default' => ''
-);
-
-$setup_info['aiassistant']['config'][] = array(
-    'name'    => 'ai_model',
-    'label'   => 'AI Model',
-    'type'    => 'input',
-    'default' => 'gpt-4o-mini'
-);
-
-$setup_info['aiassistant']['config'][] = array(
-    'name'    => 'max_history_length',
-    'label'   => 'Maximum Chat History Length',
-    'type'    => 'input',
-    'default' => '100'
-);

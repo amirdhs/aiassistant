@@ -3,7 +3,7 @@
  * AI Assistant - diverse hooks: Admin-, Preferences- and SideboxMenu-Hooks
  *
  * @link http://www.egroupware.org
- * @package ai-assistant
+ * @package aiassistant
  * @copyright (c) 2025 EGroupware Team
  * @license http://opensource.org/licenses/gpl-license.php GPL - GNU General Public License
  */
@@ -80,17 +80,17 @@ class Hooks
 		if ($location == 'sidebox_menu')
 		{
 			// Magic etemplate2 favorites menu (from nextmatch widget)
-			display_sidebox($appname, lang('Favorites'), Framework\Favorites::list_favorites('ai-assistant'));
+			display_sidebox($appname, lang('Favorites'), Framework\Favorites::list_favorites('aiassistant'));
 
 			$file = array(
 				'New Chat' => Egw::link('/index.php',array(
-					'menuaction' => 'ai-assistant.EGroupware\\AIAssistant\\Ui.index',
+					'menuaction' => 'aiassistant.EGroupware\\AIAssistant\\Ui.index',
 					'ajax' => 'true')),
 				array(
 					'text' => lang('Chat History'),
 					'no_lang' => true,
 					'link' => Egw::link('/index.php',array(
-						'menuaction' => 'ai-assistant.EGroupware\\AIAssistant\\Ui.index',
+						'menuaction' => 'aiassistant.EGroupware\\AIAssistant\\Ui.index',
 						'ajax' => 'true',
 						'view' => 'history'
 					))
@@ -99,7 +99,7 @@ class Hooks
 					'text' => lang('Configuration'),
 					'no_lang' => true,
 					'link' => Egw::link('/index.php',array(
-						'menuaction' => 'ai-assistant.EGroupware\\AIAssistant\\Ui.edit',
+						'menuaction' => 'aiassistant.EGroupware\\AIAssistant\\Ui.edit',
 						'ajax' => 'true'
 					))
 				),
@@ -111,7 +111,7 @@ class Hooks
 			// Add admin functions for admins
 			if ($GLOBALS['egw_info']['user']['apps']['admin'])
 			{
-				$file['Global Settings'] = Egw::link('/index.php','menuaction=admin.admin_ui.index&load=ai-assistant');
+				$file['Global Settings'] = Egw::link('/index.php','menuaction=admin.admin_ui.index&load=aiassistant');
 			}
 			
 			// Add chat history management
@@ -147,7 +147,7 @@ class Hooks
 					'global_cats'=> True,
 					'ajax' => 'true',
 				)),
-				'Usage Statistics' => Egw::link('/index.php','menuaction=ai-assistant.EGroupware\\AIAssistant\\Ui.stats&ajax=true'),
+				'Usage Statistics' => Egw::link('/index.php','menuaction=aiassistant.EGroupware\\AIAssistant\\Ui.stats&ajax=true'),
 			);
 			if ($location == 'admin')
 			{
@@ -280,9 +280,27 @@ class Hooks
 	 */
 	public static function config($data)
 	{
-		unset($data);	// not used, but required by function signature
+		// Handle config saving if we have newsettings
+		if (!empty($data['newsettings'])) {
+			$so = new \EGroupware\AIAssistant\So();
+			
+			foreach ($data['newsettings'] as $name => $value) {
+				if (in_array($name, ['ai_model', 'ai_api_url', 'ai_api_key', 'max_history_length'])) {
+					$so->save_config($name, $value);
+				}
+			}
+		}
 
-		// Return select options for dropdowns
+		// Load current configuration values from our custom table
+		$so = new \EGroupware\AIAssistant\So();
+		$current_config = [];
+		$config_keys = ['ai_model', 'ai_api_url', 'ai_api_key', 'max_history_length'];
+		
+		foreach ($config_keys as $key) {
+			$current_config[$key] = $so->get_config($key);
+		}
+
+		// Return select options for dropdowns and current/default values
 		return array(
 			'sel_options' => array(
 				'ai_model' => array(
@@ -298,7 +316,12 @@ class Hooks
 					'azure:gpt-4o' => 'Azure OpenAI GPT-4o',
 					'azure:gpt-4o-mini' => 'Azure OpenAI GPT-4o Mini',
 				)
-			)
+			),
+			'default_values' => array_merge([
+				'ai_model' => 'openai:gpt-4o-mini',
+				'ai_api_url' => 'https://api.openai.com/v1',
+				'max_history_length' => 100,
+			], $current_config)
 		);
 	}
 

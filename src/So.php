@@ -3,7 +3,7 @@
  * EGroupware AI Assistant - Storage Object
  *
  * @link http://www.egroupware.org
- * @package ai-assistant
+ * @package aiassistant
  * @copyright (c) 2025 EGroupware Team
  * @license http://opensource.org/licenses/gpl-license.php GPL - GNU General Public License
  */
@@ -98,8 +98,29 @@ class So
 	 */
 	public function get_config($name, $default = null)
 	{
-		$config = Api\Config::read(self::APP);
-		return $config[$name] ?? $default;
+		// Get global configuration (account_id = NULL) from custom config table
+		$result = $this->db->select(
+			'egw_ai_assistant_config',
+			'config_value',
+			[
+				'config_app' => self::APP,
+				'config_name' => $name,
+				'account_id' => null
+			],
+			__LINE__,
+			__FILE__,
+			false,
+			'',
+			self::APP,
+		)->fetchColumn();
+		
+		// If no custom config found, fall back to standard EGroupware config
+		if ($result === false) {
+			$config = Api\Config::read(self::APP);
+			return $config[$name] ?? $default;
+		}
+		
+		return $result ?? $default;
 	}
 	
 	/**
@@ -107,8 +128,33 @@ class So
 	 */
 	public function save_config($name, $value)
 	{
-		Api\Config::save_value($name, $value, self::APP);
-		return true;
+		$now = time();
+		
+		// Try to update existing global config record first (account_id = NULL)
+		$updated = $this->db->update('egw_ai_assistant_config', [
+			'config_value' => $value,
+			'modified' => $now
+		], [
+			'config_app' => self::APP,
+			'config_name' => $name,
+			'account_id' => null
+		], __LINE__, __FILE__, self::APP);
+		
+		// If no record was updated, insert a new one
+		if ($updated === 0) {
+			$result = $this->db->insert('egw_ai_assistant_config', [
+				'config_app' => self::APP,
+				'config_name' => $name,
+				'config_value' => $value,
+				'account_id' => null,
+				'created' => $now,
+				'modified' => $now
+			], false, __LINE__, __FILE__, self::APP);
+			
+			return $result !== false;
+		}
+		
+		return $updated > 0;
 	}
 	
 	/**
@@ -138,15 +184,30 @@ class So
 	public function save_user_config($account_id, $name, $value)
 	{
 		$now = time();
-		return $this->db->insert('egw_ai_assistant_config', [
-		   'config_value' => $value,
-		   'created' => $now,
-		   'modified' => $now
-	   ], [
-		   'config_app' => self::APP,
-		   'config_name' => $name,
-		   'account_id' => $account_id
-	   ], __LINE__, __FILE__, self::APP);
+		
+		// Try to update existing record first
+		$updated = $this->db->update('egw_ai_assistant_config', [
+			'config_value' => $value,
+			'modified' => $now
+		], [
+			'config_app' => self::APP,
+			'config_name' => $name,
+			'account_id' => $account_id
+		], __LINE__, __FILE__, self::APP);
+		
+		// If no record was updated, insert a new one
+		if ($updated === 0) {
+			return $this->db->insert('egw_ai_assistant_config', [
+				'config_app' => self::APP,
+				'config_name' => $name,
+				'config_value' => $value,
+				'account_id' => $account_id,
+				'created' => $now,
+				'modified' => $now
+			], false, __LINE__, __FILE__, self::APP);
+		}
+		
+		return $updated;
 	}
 
 	/**

@@ -31,7 +31,7 @@ $phpgw_baseline = array(
 			'config_app' => array('type' => 'varchar','precision' => '50','nullable' => False,'default' => 'aiassistant'),
 			'config_name' => array('type' => 'varchar','precision' => '255','nullable' => False),
 			'config_value' => array('type' => 'longtext'),
-			'account_id' => array('type' => 'int','meta' => 'account','precision' => '4','nullable' => False),
+			'account_id' => array('type' => 'int','meta' => 'account','precision' => '4','nullable' => True),
 			'created' => array('type' => 'int','meta' => 'timestamp','precision' => '8','nullable' => False),
 			'modified' => array('type' => 'int','meta' => 'timestamp','precision' => '8')
 		),
