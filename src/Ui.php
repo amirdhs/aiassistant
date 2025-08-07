@@ -22,22 +22,12 @@ class Ui
 	 */
 	public $public_functions = [
 		'index' => true,
-		'edit' => 			'view' => array(
-				'caption' => 'View',
-				'default' => true,
-				'allowOnMultiple' => false,
-				'url' => 'menuaction=aiassistant.EGroupware\\AIAssistant\\Ui.dialog&history_id=$id',
-				'popup' => '700x500',
-				'group' => $group = 1,
-			),
-			'continue_chat' => array(
-				'caption' => 'Continue Chat',
-				'allowOnMultiple' => false,
-				'url' => 'menuaction=aiassistant.EGroupware\\AIAssistant\\Ui.index&continue_from=$id',
-				'popup' => '850x600',' => true,
+		'edit' => true,
+		'list' => true,
 		'dialog' => true,
 		'ajax_api' => true,
 		'action' => true,
+		'export' => true,
 	];
 
 	/**
