@@ -6,7 +6,10 @@
 
 import {EgwApp} from '../../api/js/jsapi/egw_app';
 import {Et2Dialog} from "../../api/js/etemplate/Et2Dialog/Et2Dialog";
-import {egw, app} from "../../api/js/jsapi/egw_global";
+import {app, egw} from "../../api/js/jsapi/egw_global";
+import {Et2Textarea} from "../../api/js/etemplate/Et2Textarea/Et2Textarea";
+import {et2_htmlarea} from "../../api/js/etemplate/et2_widget_htmlarea";
+import {Et2InputWidgetInterface} from "../../api/js/etemplate/Et2InputWidget/Et2InputWidget";
 
 /**
  * UI for EGroupware AI Assistant application
@@ -515,6 +518,78 @@ class AIAssistantApp extends EgwApp
 				containerNode.scrollTop = containerNode.scrollHeight;
 			}
 		}, 100);
+	}
+
+	getTextareaPromptList(widget? : Et2Textarea | et2_htmlarea)
+	{
+		if(widget instanceof Et2Textarea)
+		{
+			// Plain text box, not sure what we do here.  Might be the same, might be different.
+			return [];
+		}
+		else if(widget.getType && widget.getType() == "htmlarea")
+		{
+			// Widget is RTEditor, give it what it wants for toolbar
+			return this._getHtmlAreaPrompts(widget);
+		}
+	}
+
+	/**
+	 * Get the list of pre-configured prompts we allow on textarea / htmlarea elements formatted to be displayed in the htmlarea toolbar
+	 *
+	 * @see https://www.tiny.cloud/docs/tinymce/latest/custom-toolbarbuttons/
+	 *
+	 * @param {et2_htmlarea} widget
+	 * @return {({type : string, text : string, onAction : (action) => void} | {type : string, text : string, onAction : (action) => void} | {type : string, text : string, getSubmenuItems : () => [{type : string, text : string, onAction : () => void}]})[]}
+	 */
+	_getHtmlAreaPrompts(widget : et2_htmlarea)
+	{
+		// The toolbar needs the text to display, and the action to perform when clicked
+		return [
+			{
+				type: 'menuitem',
+				text: 'Make me sound smart',
+				onAction: (action) => this.handleTextboxPrompt('aiassist.help', widget)
+			},
+			{
+				type: 'menuitem',
+				text: 'Make safe to send to client',
+				onAction: (action) => this.handleTextboxPrompt('aiassist.safe_for_client', widget)
+			},
+			{
+				type: 'nestedmenuitem',
+				text: 'Translate',
+				getSubmenuItems: () =>
+				{
+					// This should come from getInstalledLanguages or \Translation::list_langs()
+					return [{
+						type: 'menuitem',
+						text: 'English',
+						onAction: () => {this.handleTextboxPrompt('aiassist.translate-en', widget)}
+					}];
+				}
+			}
+		];
+	}
+
+	/**
+	 * A widget has requested a predefined prompt be done to it
+	 *
+	 * @param promptID
+	 * @param widget
+	 */
+	handleTextboxPrompt(promptID : string, widget : et2_htmlarea | Et2InputWidgetInterface)
+	{
+		console.log(`Predefined prompt called: ${promptID} with input ` + widget.get_value(), widget);
+		debugger;
+
+		// AI Call - this is where we would call the AI Assistant
+		const value = widget.get_value();
+		widget.set_value("AI Assistant is thinking...");
+		window.setTimeout(() =>
+		{
+			widget.set_value("<p>AI Assistant says:</p>\n" + value);
+		}, 2000);
 	}
 }
 
