@@ -26,7 +26,7 @@
 				</row>
 				<row class="row">
 					<et2-description value="AI API Key"></et2-description>
-					<et2-password id="ai_api_key" placeholder="Enter your API key" width="100%"></et2-password>
+					<et2-textbox id="ai_api_key" placeholder="Enter your API key (starts with sk-)" width="100%" autocomplete="off"></et2-textbox>
 				</row>
 				<row class="row">
 					<et2-description value="AI Model"></et2-description>
