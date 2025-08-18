@@ -24,20 +24,5 @@ $phpgw_baseline = array(
 		'fk' => array(),
 		'ix' => array('account_id','session_id','created','message_type'),
 		'uc' => array()
-	),
-	'egw_ai_assistant_config' => array(
-		'fd' => array(
-			'config_id' => array('type' => 'auto','nullable' => False),
-			'config_app' => array('type' => 'varchar','precision' => '50','nullable' => False,'default' => 'aiassistant'),
-			'config_name' => array('type' => 'varchar','precision' => '255','nullable' => False),
-			'config_value' => array('type' => 'longtext'),
-			'account_id' => array('type' => 'int','meta' => 'account','precision' => '4','nullable' => True),
-			'created' => array('type' => 'int','meta' => 'timestamp','precision' => '8','nullable' => False),
-			'modified' => array('type' => 'int','meta' => 'timestamp','precision' => '8')
-		),
-		'pk' => array('config_id'),
-		'fk' => array(),
-		'ix' => array(array('config_app','config_name','account_id'),'account_id'),
-		'uc' => array(array('config_app','config_name','account_id'))
 	)
 );
