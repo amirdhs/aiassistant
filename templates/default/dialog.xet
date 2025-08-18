@@ -45,12 +45,12 @@
 						</grid>
 						
 						<et2-description value="Message Content" class="subHeader"></et2-description>
-						<et2-box class="conversation-content" style="border: 1px solid #ccc; padding: 10px; overflow-y: auto; max-height: 200px; background: #f9f9f9;">
+						<et2-box class="conversation-content">
 							<et2-description id="message_content"></et2-description>
 						</et2-box>
 						
 						<et2-description id="tool_calls_label" value="Tool Calls" class="subHeader"></et2-description>
-						<et2-box id="tool_calls_container" class="tool-calls-content" style="border: 1px solid #ccc; padding: 10px; max-height: 100px; overflow-y: auto; background: #f0f0f0;">
+						<et2-box id="tool_calls_container" class="tool-calls-content">
 							<et2-description id="tool_calls_content"></et2-description>
 						</et2-box>
 					</et2-vbox>
