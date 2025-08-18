@@ -38,7 +38,6 @@ $setup_info['aiassistant']['depends'][] = array(
 
 /* Define the tables this app uses */
 $setup_info['aiassistant']['tables'][] = 'egw_ai_assistant_history';
-$setup_info['aiassistant']['tables'][] = 'egw_ai_assistant_config';
 
 /* The hooks this app includes, needed for hooks registration */
 $setup_info['aiassistant']['hooks']['admin'] = Hooks::class.'::all_hooks';
