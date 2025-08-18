@@ -145,7 +145,7 @@ class AIAssistantApp extends EgwApp
 	/**
 	 * Add a message to the chat interface
 	 */
-	add_message(content: string, type: 'user' | 'assistant' | 'error' | 'tool', timestamp?: string, tool_name?: string, tool_args?: any)
+	add_message(type: 'user' | 'assistant' | 'error' | 'tool', content: string, timestamp?: string, tool_name?: string, tool_args?: any)
 	{
 		const messagesContainer = this.et2.getWidgetById('messages_container');
 		if (!messagesContainer) return;
@@ -169,6 +169,9 @@ class AIAssistantApp extends EgwApp
 		const messageContent = document.createElement('div');
 		messageContent.className = 'aiassistant_message_content';
 
+		// Debug - log what we're trying to display
+		console.log('Adding message:', type, content);
+
 		if (type === 'tool') {
 			// Special formatting for tool messages
 			messageContent.className = 'aiassistant_tool_message';
@@ -177,14 +180,15 @@ class AIAssistantApp extends EgwApp
 					<span class="aiassistant_tool_icon">🔧</span>
 					<span>Using ${tool_name || 'tool'}</span>
 				</div>
-				<div>${this.format_message_content(content)}</div>
+				<div class="aiassistant_text_content">${this.format_message_content(content)}</div>
 				${tool_args ? `<details class="aiassistant_tool_details">
 					<summary>Details</summary>
 					<pre class="aiassistant_tool_args">${JSON.stringify(tool_args, null, 2)}</pre>
 				</details>` : ''}
 			`;
 		} else {
-			messageContent.innerHTML = this.format_message_content(content);
+			// Wrap content in a div with special class for visibility
+			messageContent.innerHTML = `<div class="aiassistant_text_content">${this.format_message_content(content)}</div>`;
 		}
 
 		// Add timestamp
@@ -219,10 +223,9 @@ class AIAssistantApp extends EgwApp
 		var toolDiv = document.createElement('div');
 		toolDiv.className = 'aiassistant_message tool';
 		
-		var avatarDiv = document.createElement('div');
-		avatarDiv.className = 'aiassistant_avatar';
-		avatarDiv.style.background = 'linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%)';
-		avatarDiv.textContent = '🔧';
+	var avatarDiv = document.createElement('div');
+	avatarDiv.className = 'aiassistant_avatar tool';
+	avatarDiv.textContent = '🔧';
 		
 		var toolContent = document.createElement('div');
 		toolContent.className = 'aiassistant_message_bubble aiassistant_tool_bubble';
@@ -234,10 +237,8 @@ class AIAssistantApp extends EgwApp
 		var toolArgs = document.createElement('details');
 		toolArgs.className = 'aiassistant_tool_details';
 		
-		var summary = document.createElement('summary');
-		summary.textContent = 'View Parameters';
-		summary.style.cursor = 'pointer';
-		summary.style.color = '#667eea';
+	var summary = document.createElement('summary');
+	summary.textContent = 'View Parameters';
 		
 		var argsContent = document.createElement('pre');
 		argsContent.className = 'aiassistant_tool_args';
@@ -252,19 +253,12 @@ class AIAssistantApp extends EgwApp
 		if (tool_call.result) {
 			var resultDiv = document.createElement('div');
 			resultDiv.className = 'aiassistant_tool_result';
-			resultDiv.style.marginTop = '12px';
-			resultDiv.style.padding = '12px';
-			resultDiv.style.borderRadius = '8px';
-			
+
 			if (tool_call.result.success) {
-				resultDiv.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
-				resultDiv.style.border = '1px solid #b8dacc';
-				resultDiv.style.color = '#155724';
+				resultDiv.classList.add('success');
 				resultDiv.innerHTML = `<strong>✅ Success:</strong> ${tool_call.result.message || 'Operation completed'}`;
 			} else {
-				resultDiv.style.background = 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)';
-				resultDiv.style.border = '1px solid #f1b0b7';
-				resultDiv.style.color = '#721c24';
+				resultDiv.classList.add('error');
 				resultDiv.innerHTML = `<strong>❌ Error:</strong> ${tool_call.result.error || 'Operation failed'}`;
 			}
 			
@@ -335,13 +329,12 @@ class AIAssistantApp extends EgwApp
 		avatarDiv.className = 'aiassistant_avatar';
 		avatarDiv.textContent = 'AI';
 		
-		var bubbleDiv = document.createElement('div');
-		bubbleDiv.className = 'aiassistant_message_bubble';
-		bubbleDiv.style.padding = '16px 20px';
+	var bubbleDiv = document.createElement('div');
+	bubbleDiv.className = 'aiassistant_message_bubble aiassistant_typing_bubble';
 		
 		var dotsDiv = document.createElement('div');
-		dotsDiv.className = 'aiassistant_typing_dots';
-		dotsDiv.innerHTML = '<span></span><span></span><span></span>';
+	dotsDiv.className = 'aiassistant_typing_dots';
+	dotsDiv.innerHTML = '<span class="aiassistant_typing_dot"></span><span class="aiassistant_typing_dot"></span><span class="aiassistant_typing_dot"></span>';
 		
 		bubbleDiv.appendChild(dotsDiv);
 		typingDiv.appendChild(avatarDiv);
@@ -372,7 +365,7 @@ class AIAssistantApp extends EgwApp
 	show_error(error)
 	{
 		egw.message(error, 'error');
-		this.add_message('❌ Sorry, I encountered an error: ' + error, 'error');
+		this.add_message('error', '❌ Sorry, I encountered an error: ' + error);
 		
 		var statusMessage = this.et2.getWidgetById('status_message');
 		if (statusMessage) {
@@ -412,6 +405,7 @@ class AIAssistantApp extends EgwApp
 		
 		for (var i = 0; i < data.history.length; i++) {
 			var entry = data.history[i];
+			// Handle the message_type and message_content in the right order
 			this.add_message(entry.message_type, entry.message_content);
 			
 			if (entry.tool_calls) {
@@ -524,14 +518,47 @@ class AIAssistantApp extends EgwApp
 	{
 		if(widget instanceof Et2Textarea)
 		{
-			// Plain text box, not sure what we do here.  Might be the same, might be different.
-			return [];
+			// Plain text box - return simplified menu options
+			return this._getTextAreaPrompts(widget);
 		}
 		else if(widget.getType && widget.getType() == "htmlarea")
 		{
 			// Widget is RTEditor, give it what it wants for toolbar
 			return this._getHtmlAreaPrompts(widget);
 		}
+		
+		return [];
+	}
+	
+	/**
+	 * Get prompts for plain textarea elements
+	 */
+	_getTextAreaPrompts(widget : Et2Textarea)
+	{
+		// For plain text areas, we return a simpler set of options
+		// These could be used in a context menu or button dropdown
+		return [
+			{
+				id: 'aiassist.summarize',
+				label: 'Summarize text',
+				action: () => this.handleTextboxPrompt('aiassist.summarize', widget)
+			},
+			{
+				id: 'aiassist.formal',
+				label: 'Make more formal',
+				action: () => this.handleTextboxPrompt('aiassist.formal', widget)
+			},
+			{
+				id: 'aiassist.grammar',
+				label: 'Fix grammar & spelling',
+				action: () => this.handleTextboxPrompt('aiassist.grammar', widget)
+			},
+			{
+				id: 'aiassist.concise',
+				label: 'Make concise',
+				action: () => this.handleTextboxPrompt('aiassist.concise', widget)
+			}
+		];
 	}
 
 	/**
@@ -548,13 +575,28 @@ class AIAssistantApp extends EgwApp
 		return [
 			{
 				type: 'menuitem',
-				text: 'Make me sound smart',
-				onAction: (action) => this.handleTextboxPrompt('aiassist.help', widget)
+				text: 'Summarize text',
+				onAction: (action) => this.handleTextboxPrompt('aiassist.summarize', widget)
 			},
 			{
 				type: 'menuitem',
-				text: 'Make safe to send to client',
-				onAction: (action) => this.handleTextboxPrompt('aiassist.safe_for_client', widget)
+				text: 'Make more formal',
+				onAction: (action) => this.handleTextboxPrompt('aiassist.formal', widget)
+			},
+			{
+				type: 'menuitem',
+				text: 'Make more casual',
+				onAction: (action) => this.handleTextboxPrompt('aiassist.casual', widget)
+			},
+			{
+				type: 'menuitem',
+				text: 'Fix grammar & spelling',
+				onAction: (action) => this.handleTextboxPrompt('aiassist.grammar', widget)
+			},
+			{
+				type: 'menuitem',
+				text: 'Make concise',
+				onAction: (action) => this.handleTextboxPrompt('aiassist.concise', widget)
 			},
 			{
 				type: 'nestedmenuitem',
@@ -562,11 +604,97 @@ class AIAssistantApp extends EgwApp
 				getSubmenuItems: () =>
 				{
 					// This should come from getInstalledLanguages or \Translation::list_langs()
-					return [{
-						type: 'menuitem',
-						text: 'English',
-						onAction: () => {this.handleTextboxPrompt('aiassist.translate-en', widget)}
-					}];
+					return [
+						{
+							type: 'menuitem',
+							text: 'English',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-en', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'German',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-de', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'French',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-fr', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Spanish',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-es', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Italian',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-it', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Portuguese',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-pt', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Dutch',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-nl', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Russian',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-ru', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Chinese',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-zh', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Japanese',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-ja', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Korean',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-ko', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Arabic',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-ar', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Persian',
+							onAction: () => {this.handleTextboxPrompt('aiassist.translate-fa', widget)}
+						}
+					];
+				}
+			},
+			{
+				type: 'nestedmenuitem',
+				text: 'Generate',
+				getSubmenuItems: () =>
+				{
+					return [
+						{
+							type: 'menuitem',
+							text: 'Professional reply',
+							onAction: () => {this.handleTextboxPrompt('aiassist.generate_reply', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Meeting follow-up',
+							onAction: () => {this.handleTextboxPrompt('aiassist.meeting_followup', widget)}
+						},
+						{
+							type: 'menuitem',
+							text: 'Thank you note',
+							onAction: () => {this.handleTextboxPrompt('aiassist.thank_you', widget)}
+						}
+					];
 				}
 			}
 		];
@@ -578,18 +706,181 @@ class AIAssistantApp extends EgwApp
 	 * @param promptID
 	 * @param widget
 	 */
-	handleTextboxPrompt(promptID : string, widget : et2_htmlarea | Et2InputWidgetInterface)
+	handleTextboxPrompt(promptID : string, widget : any)
 	{
 		console.log(`Predefined prompt called: ${promptID} with input ` + widget.get_value(), widget);
-		debugger;
+		
+		const originalValue = widget.get_value();
+		
+		// Don't process if there's no content
+		if (!originalValue || originalValue.trim() === '') {
+			egw.message('Please enter some text first', 'info');
+			return;
+		}
+		
+		// Show loading state
+		const loadingMessage = this.getLoadingMessage(promptID);
+		widget.set_value(loadingMessage);
+		
+		// Make the AI call
+		egw.json('aiassistant.EGroupware\\AIAssistant\\Ui.ajax_api', [
+			'process_prompt',
+			promptID,
+			originalValue
+		], (response) => {
+			this.handlePromptResponse(response, widget, originalValue);
+		}, this, true, this).sendRequest();
+	}
+	
+	/**
+	 * Get appropriate loading message based on prompt type
+	 */
+	getLoadingMessage(promptID: string): string
+	{
+		const loadingMessages = {
+			'aiassist.summarize': 'Summarizing your text...',
+			'aiassist.formal': 'Making text more formal...',
+			'aiassist.casual': 'Making text more casual...',
+			'aiassist.grammar': 'Checking grammar and spelling...',
+			'aiassist.concise': 'Making text more concise...',
+			'aiassist.generate_reply': 'Generating professional reply...',
+			'aiassist.meeting_followup': 'Creating meeting follow-up...',
+			'aiassist.thank_you': 'Composing thank you note...'
+		};
+		
+		// Handle translation prompts
+		if (promptID.startsWith('aiassist.translate-')) {
+			const langCode = promptID.split('-')[1];
+			const langNames = {
+				'en': 'English',
+				'de': 'German', 
+				'fr': 'French',
+				'es': 'Spanish',
+				'it': 'Italian',
+				'pt': 'Portuguese',
+				'nl': 'Dutch',
+				'ru': 'Russian',
+				'zh': 'Chinese',
+				'ja': 'Japanese',
+				'ko': 'Korean',
+				'ar': 'Arabic',
+				'fa': 'Persian'
+			};
+			const langName = langNames[langCode] || langCode.toUpperCase();
+			return `🌐 Translating to ${langName}...`;
+		}
+		
+		return loadingMessages[promptID] || '🤖 AI is processing...';
+	}
+	
+	/**
+	 * Handle the response from AI prompt processing
+	 */
+	handlePromptResponse(response: any, widget: any, originalValue: string)
+	{
+		if (response.error) {
+			// Restore original content on error
+			widget.set_value(originalValue);
+			egw.message('AI processing failed: ' + response.error, 'error');
+			return;
+		}
+		
+		if (response.success && response.result) {
+			// Set the AI-processed content
+			widget.set_value(response.result);
+			
+			// Show success message
+			egw.message('Text processed successfully', 'success');
+		} else {
+			// Restore original content if no result
+			widget.set_value(originalValue);
+			egw.message('No result received from AI', 'warning');
+		}
+	}
 
-		// AI Call - this is where we would call the AI Assistant
-		const value = widget.get_value();
-		widget.set_value("AI Assistant is thinking...");
-		window.setTimeout(() =>
-		{
-			widget.set_value("<p>AI Assistant says:</p>\n" + value);
-		}, 2000);
+	/**
+	 * Static method for other apps to easily add AI assistance to their text widgets
+	 * Usage: app.aiassistant.addAIButtonToWidget(widget, ['summarize', 'formal', 'grammar']);
+	 */
+	static addAIButtonToWidget(widget: any, promptTypes: string[] = ['summarize', 'formal', 'grammar'])
+	{
+		if (!widget || !widget.getDOMNode) {
+			console.warn('Invalid widget provided to addAIButtonToWidget');
+			return;
+		}
+
+		// Create AI assistant button
+		const aiButton = document.createElement('button');
+		aiButton.className = 'et2_button aiassistant_widget_button';
+		aiButton.innerHTML = '🤖 AI';
+		aiButton.title = 'AI Assistant';
+		aiButton.type = 'button';
+
+		// Create dropdown menu
+		const aiMenu = document.createElement('div');
+	aiMenu.className = 'aiassistant_widget_menu';
+
+		// Add menu items based on promptTypes
+		const menuItems = {
+			'summarize': { label: 'Summarize text', icon: '📄' },
+			'formal': { label: 'Make more formal', icon: '🎩' },
+			'casual': { label: 'Make more casual', icon: '😊' },
+			'grammar': { label: 'Fix grammar & spelling', icon: '✏️' },
+			'concise': { label: 'Make concise', icon: '📝' },
+			'safe_for_client': { label: 'Make client-safe', icon: '🛡️' },
+			'translate_en': { label: 'Translate to English', icon: '🌐' }
+		};
+
+		promptTypes.forEach(promptType => {
+			if (menuItems[promptType]) {
+				const menuItem = document.createElement('div');
+				menuItem.className = 'aiassistant_menu_item';
+				menuItem.innerHTML = `${menuItems[promptType].icon} ${menuItems[promptType].label}`;
+				
+				menuItem.addEventListener('click', () => {
+					aiMenu.style.display = 'none';
+					if (app.aiassistant && (app.aiassistant as AIAssistantApp).handleTextboxPrompt) {
+						(app.aiassistant as AIAssistantApp).handleTextboxPrompt('aiassist.' + promptType, widget);
+					}
+				});
+
+				// Hover handled by CSS
+
+				aiMenu.appendChild(menuItem);
+			}
+		});
+
+		// Toggle menu on button click
+		aiButton.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			
+			if (aiMenu.style.display === 'none' || getComputedStyle(aiMenu).display === 'none') {
+				// Position menu below button
+				const rect = aiButton.getBoundingClientRect();
+				aiMenu.style.left = rect.left + 'px';
+				aiMenu.style.top = (rect.bottom + 2) + 'px';
+				aiMenu.style.display = 'block';
+			} else {
+				aiMenu.style.display = 'none';
+			}
+		});
+
+		// Close menu when clicking outside
+		document.addEventListener('click', () => {
+			aiMenu.style.display = 'none';
+		});
+
+		// Insert button after the widget
+		const widgetNode = widget.getDOMNode();
+		if (widgetNode && widgetNode.parentNode) {
+			const container = document.createElement('div');
+			container.className = 'aiassistant_widget_container';
+			
+			widgetNode.parentNode.insertBefore(container, widgetNode.nextSibling);
+			container.appendChild(aiButton);
+			container.appendChild(aiMenu);
+		}
 	}
 }
 
