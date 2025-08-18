@@ -79,7 +79,12 @@ class Ui
 						{
 							// Save global admin settings
 							$so->save_config('ai_api_url', $content['ai_api_url']);
-							$so->save_config('ai_api_key', $content['ai_api_key']);
+							
+							// Only save API key if it's provided and not empty
+							if (!empty($content['ai_api_key']) && trim($content['ai_api_key']) !== '' && $content['ai_api_key'] !== '***hidden***') {
+								$so->save_config('ai_api_key', trim($content['ai_api_key']));
+							}
+							
 							$so->save_config('ai_model', $content['ai_model']);
 							$so->save_config('max_history_length', $content['max_history_length']);
 							$so->save_config('temperature', $content['temperature']);
@@ -119,10 +124,12 @@ class Ui
 		}
 		// Load current settings
 		$account_id = $GLOBALS['egw_info']['user']['account_id'];
+		$current_api_key = $so->get_config('ai_api_key');
+		
 		$content = [
 			// Global settings (admin only)
 			'ai_api_url' => $so->get_config('ai_api_url', 'https://models.inference.ai.azure.com'),
-			'ai_api_key' => $is_admin ? $so->get_config('ai_api_key') : '***hidden***',
+			'ai_api_key' => $is_admin ? ($current_api_key ? '***hidden***' : '') : '',
 			'ai_model' => $so->get_config('ai_model', 'gpt-4o-mini'),
 			'max_history_length' => $so->get_config('max_history_length', 100),
 			'temperature' => $so->get_config('temperature', 0.7),
@@ -386,6 +393,21 @@ class Ui
 					Api\Json\Response::get()->data([
 						'success' => true,
 						'message' => 'Chat history cleared successfully'
+					]);
+					break;
+					
+				case 'process_prompt':
+					$prompt_id = $params[1] ?? $_REQUEST['prompt_id'] ?? '';
+					$content = $params[2] ?? $_REQUEST['content'] ?? '';
+					
+					if (empty($prompt_id) || empty($content)) {
+						throw new \Exception('Both prompt ID and content are required');
+					}
+					
+					$result = $bo->process_predefined_prompt($prompt_id, $content);
+					Api\Json\Response::get()->data([
+						'success' => true,
+						'result' => $result
 					]);
 					break;
 					
