@@ -280,25 +280,8 @@ class Hooks
 	 */
 	public static function config($data)
 	{
-		// Handle config saving if we have newsettings
-		if (!empty($data['newsettings'])) {
-			$so = new \EGroupware\AIAssistant\So();
-			
-			foreach ($data['newsettings'] as $name => $value) {
-				if (in_array($name, ['ai_model', 'ai_api_url', 'ai_api_key', 'max_history_length'])) {
-					$so->save_config($name, $value);
-				}
-			}
-		}
-
-		// Load current configuration values from our custom table
-		$so = new \EGroupware\AIAssistant\So();
-		$current_config = [];
-		$config_keys = ['ai_model', 'ai_api_url', 'ai_api_key', 'max_history_length'];
-		
-		foreach ($config_keys as $key) {
-			$current_config[$key] = $so->get_config($key);
-		}
+		// Load current configuration values from standard EGroupware config
+		$config = \EGroupware\Api\Config::read('aiassistant');
 
 		// Return select options for dropdowns and current/default values
 		return array(
@@ -321,7 +304,7 @@ class Hooks
 				'ai_model' => 'openai:gpt-4o-mini',
 				'ai_api_url' => 'https://api.openai.com/v1',
 				'max_history_length' => 100,
-			], $current_config)
+			], $config)
 		);
 	}
 
