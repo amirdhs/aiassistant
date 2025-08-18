@@ -123,12 +123,91 @@ class Bo
 	}
 	
 	/**
+	 * Process predefined prompts for text widgets
+	 * 
+	 * @param string $prompt_id The predefined prompt ID
+	 * @param string $content The text content to process
+	 * @return string The processed content
+	 */
+	public function process_predefined_prompt($prompt_id, $content)
+	{
+		// Get AI configuration
+		$api_config = $this->get_ai_config();
+		if (empty($api_config['api_key'])) {
+			throw new \Exception('AI API not configured. Please contact your administrator.');
+		}
+		
+		// Define predefined prompts
+		$prompts = $this->get_predefined_prompts();
+		
+		if (!isset($prompts[$prompt_id])) {
+			throw new \Exception('Unknown prompt ID: ' . $prompt_id);
+		}
+		
+		$prompt_template = $prompts[$prompt_id];
+		$system_message = str_replace('{content}', $content, $prompt_template);
+		
+		// Prepare messages for AI API call
+		$messages = [
+			[
+				'role' => 'system',
+				'content' => $system_message
+			],
+			[
+				'role' => 'user', 
+				'content' => $content
+			]
+		];
+		
+		// Call AI API
+		$response = $this->call_ai_api($api_config, $messages);
+		
+		// Return just the processed content, not the full response structure
+		return $response['content'] ?? $content;
+	}
+	
+	/**
+	 * Get predefined prompt templates
+	 */
+	private function get_predefined_prompts()
+	{
+		return [
+			'aiassist.summarize' => 'Please summarize the following text concisely while preserving the key information and main points. Return only the summary without any additional commentary.',
+			'aiassist.formal' => 'Please rewrite the following text to make it more professional and formal while maintaining the original meaning. Return only the revised text.',
+			'aiassist.casual' => 'Please rewrite the following text to make it more casual and friendly while maintaining the original meaning. Return only the revised text.',
+			'aiassist.grammar' => 'Please correct any grammar, spelling, and punctuation errors in the following text while preserving the original meaning and tone. Return only the corrected text.',
+			'aiassist.concise' => 'Please make the following text more concise and to-the-point while preserving all important information. Return only the condensed text.',
+			'aiassist.generate_reply' => 'Based on the following text, generate a professional email reply. Return only the reply content.',
+			'aiassist.meeting_followup' => 'Based on the following content, create a professional meeting follow-up message. Return only the follow-up content.',
+			'aiassist.thank_you' => 'Based on the following context, create a professional thank you note. Return only the thank you message.',
+			'aiassist.translate-en' => 'Please translate the following text to English. Return only the translated text.',
+			'aiassist.translate-de' => 'Please translate the following text to German. Return only the translated text.',
+			'aiassist.translate-fr' => 'Please translate the following text to French. Return only the translated text.',
+			'aiassist.translate-es' => 'Please translate the following text to Spanish. Return only the translated text.',
+			'aiassist.translate-it' => 'Please translate the following text to Italian. Return only the translated text.',
+			'aiassist.translate-pt' => 'Please translate the following text to Portuguese. Return only the translated text.',
+			'aiassist.translate-nl' => 'Please translate the following text to Dutch. Return only the translated text.',
+			'aiassist.translate-ru' => 'Please translate the following text to Russian. Return only the translated text.',
+			'aiassist.translate-zh' => 'Please translate the following text to Chinese. Return only the translated text.',
+			'aiassist.translate-ja' => 'Please translate the following text to Japanese. Return only the translated text.',
+			'aiassist.translate-ko' => 'Please translate the following text to Korean. Return only the translated text.',
+			'aiassist.translate-ar' => 'Please translate the following text to Arabic. Return only the translated text.',
+			'aiassist.translate-fa' => 'Please translate the following text to Persian (Farsi). Return only the translated text.',
+			'aiassist.generate_subject' => 'Based on the following email content, generate a clear and concise subject line that accurately summarizes the main topic or purpose. Return only the subject line without quotes or additional text.',
+		];
+	}
+	
+	/**
 	 * Get AI configuration
 	 */
 	private function get_ai_config()
 	{
 		$api_url = $this->so->get_config('ai_api_url', 'https://api.openai.com/v1');
 		$model = $this->so->get_config('ai_model', 'gpt-4o-mini');
+		$api_key = $this->so->get_config('ai_api_key');
+		
+		// Clean up API key - remove any whitespace/newlines
+		$api_key = trim($api_key);
 		
 		// Clean up model name - remove provider prefix if present
 		if (strpos($model, ':') !== false) {
@@ -137,7 +216,7 @@ class Bo
 		
 		return [
 			'api_url' => $api_url,
-			'api_key' => $this->so->get_config('ai_api_key'),
+			'api_key' => $api_key,
 			'model' => $model,
 		];
 	}
