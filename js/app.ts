@@ -112,12 +112,8 @@ class AIAssistantApp extends EgwApp
 			// Add assistant response
 			this.add_message('assistant', data.response.content);
 			
-			// Add tool calls if any
-			if (data.response.tool_calls && data.response.tool_calls.length > 0) {
-				for (var i = 0; i < data.response.tool_calls.length; i++) {
-					this.add_tool_call(data.response.tool_calls[i]);
-				}
-			}
+			// Note: We don't display tool calls to keep the interface clean
+			// The AI should include the tool results directly in its response content
 		}
 	}
 	
@@ -408,21 +404,8 @@ class AIAssistantApp extends EgwApp
 			// Handle the message_type and message_content in the right order
 			this.add_message(entry.message_type, entry.message_content);
 			
-			if (entry.tool_calls) {
-				try {
-					var toolCalls = typeof entry.tool_calls === 'string' 
-						? JSON.parse(entry.tool_calls) 
-						: entry.tool_calls;
-					
-					if (Array.isArray(toolCalls)) {
-						for (var j = 0; j < toolCalls.length; j++) {
-							this.add_tool_call(toolCalls[j]);
-						}
-					}
-				} catch (e) {
-					console.warn('Failed to parse tool calls:', e);
-				}
-			}
+			// Note: We don't display tool calls to keep the interface clean
+			// The AI should include the tool results directly in its response content
 		}
 	}
 	
