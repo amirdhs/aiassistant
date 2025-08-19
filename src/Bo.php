@@ -238,14 +238,14 @@ class Bo
 		foreach ($history as $entry) {
 			$messages[] = [
 				'role' => $entry['message_type'],
-				'content' => $entry['message_content']
+				'content' => $entry['message_content'] ?? ''
 			];
 		}
 		
 		// Add new user message
 		$messages[] = [
 			'role' => 'user',
-			'content' => $new_message
+			'content' => $new_message ?? ''
 		];
 		
 		return $messages;
@@ -259,7 +259,9 @@ class Bo
 		$user_name = $GLOBALS['egw_info']['user']['account_fullname'] ?: $GLOBALS['egw_info']['user']['account_lid'];
 		
 		return "You are an AI assistant integrated into EGroupware, helping user '{$user_name}' with their daily business tasks. " .
-			   "You have access to EGroupware's internal APIs and can perform real actions. Available functions include:\n\n" .
+			   "You have access to EGroupware's internal APIs and MUST perform real actions immediately. Available functions include:\n\n" .
+			   "CURRENT DATE & TIME:\n" .
+			   "- get_current_date: Get the current date and time (always use this when users ask about dates or 'today')\n\n" .
 			   "CONTACTS:\n" .
 			   "- create_contact: Create new contacts with name, email, phone, organization, title, notes\n" .
 			   "- search_contacts: Search existing contacts by name, email, company, etc.\n\n" .
@@ -270,9 +272,22 @@ class Bo
 			   "- create_task: Create tasks in InfoLog with title, description, due date, priority, assignments\n\n" .
 			   "EMAIL:\n" .
 			   "- send_email: Send emails through EGroupware with to/cc/bcc recipients\n\n" .
-			   "When users ask you to perform actions, use the appropriate tools and confirm what you've done. " .
-			   "Be helpful, concise, and professional. Ask for clarification if needed parameters are missing. " .
-			   "Always confirm successful operations and provide useful details like IDs or URLs when available.";
+			   "CRITICAL WORKFLOW INSTRUCTIONS - FOLLOW THESE EXACTLY:\n" .
+			   "1. ALWAYS execute tools immediately when requested - NEVER say 'I will' or 'Let me'\n" .
+			   "2. For date-related queries: Call get_current_date first, then search_calendar_events\n" .
+			   "3. For contact queries: Call search_contacts immediately\n" .
+			   "4. ALWAYS call the tools and provide complete results in the SAME response\n" .
+			   "5. When user asks multiple things, handle ALL requests in one response using multiple tool calls\n" .
+			   "6. Present all results clearly with proper formatting\n" .
+			   "7. If no results found, state clearly and offer next steps\n\n" .
+			   "RESPONSE FORMAT:\n" .
+			   "- Execute all necessary tools first\n" .
+			   "- Present complete results immediately\n" .
+			   "- Use clear headings and formatting\n" .
+			   "- Include all requested information in one comprehensive response\n\n" .
+			   "EXAMPLE: User asks 'What's my schedule for today?'\n" .
+			   "YOUR RESPONSE: Call get_current_date + search_calendar_events, then immediately show:\n" .
+			   "'### Today's Schedule (August 19, 2025)\n[Complete calendar results here]'";
 	}
 	
 	/**
@@ -303,7 +318,7 @@ class Bo
 		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 60); // Increased timeout for tool execution
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 		
 		$response = curl_exec($ch);
@@ -344,9 +359,85 @@ class Bo
 		
 		$ai_message = $result['choices'][0]['message'];
 		
-		// Execute tools if requested
+		// Execute tools if requested and get a follow-up response
 		if (!empty($ai_message['tool_calls'])) {
-			$ai_message['tool_calls'] = $this->execute_tools($ai_message['tool_calls']);
+			error_log("AI Assistant Debug - Tool calls detected: " . count($ai_message['tool_calls']));
+			
+			$tool_results = $this->execute_tools($ai_message['tool_calls']);
+			
+			error_log("AI Assistant Debug - Tool results count: " . count($tool_results));
+			
+			// Add the assistant's tool call message
+			$messages[] = [
+				'role' => 'assistant',
+				'content' => $ai_message['content'] ?? '',
+				'tool_calls' => $ai_message['tool_calls']
+			];
+			
+			// Add tool results as tool messages
+			foreach ($tool_results as $tool_result) {
+				$result_content = '';
+				if (isset($tool_result['result']['message'])) {
+					$result_content = $tool_result['result']['message'];
+					error_log("AI Assistant Debug - Tool result message: " . substr($result_content, 0, 200) . "...");
+				} elseif (isset($tool_result['result']['success']) && $tool_result['result']['success']) {
+					$result_content = 'Operation completed successfully';
+				} elseif (isset($tool_result['result']['error'])) {
+					$result_content = 'Error: ' . $tool_result['result']['error'];
+				} else {
+					$result_content = json_encode($tool_result['result']);
+				}
+				
+				$messages[] = [
+					'role' => 'tool',
+					'tool_call_id' => $tool_result['id'],
+					'content' => $result_content
+				];
+			}
+			
+			// Make a second API call to get the AI's response incorporating the tool results
+			$follow_up_data = [
+				'model' => $config['model'],
+				'messages' => $messages,
+				'temperature' => 0.7,
+				'max_tokens' => 1000
+			];
+			
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $config['api_url'] . '/chat/completions');
+			curl_setopt($ch, CURLOPT_POST, true);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($follow_up_data));
+			curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_TIMEOUT, 60); // Increased timeout for follow-up
+			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+			
+			$follow_up_response = curl_exec($ch);
+			$follow_up_http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			curl_close($ch);
+			
+			if ($follow_up_http_code === 200) {
+				$follow_up_result = json_decode($follow_up_response, true);
+				if ($follow_up_result && isset($follow_up_result['choices'][0]['message']['content'])) {
+					// Use the follow-up response as the final content
+					$ai_message['content'] = $follow_up_result['choices'][0]['message']['content'];
+					error_log("AI Assistant Debug - Final AI response: " . substr($ai_message['content'], 0, 200) . "...");
+					// Update usage information if available
+					if (isset($follow_up_result['usage'])) {
+						$result['usage'] = $follow_up_result['usage'];
+					}
+				} else {
+					error_log("AI Assistant Debug - Follow-up response missing content");
+					// Fallback: create a response with tool results
+					$ai_message['content'] = $this->format_tool_results_fallback($tool_results);
+				}
+			} else {
+				error_log("AI Assistant Debug - Follow-up API call failed with code: " . $follow_up_http_code);
+				// Fallback: create a response with tool results
+				$ai_message['content'] = $this->format_tool_results_fallback($tool_results);
+			}
+			
+			$ai_message['tool_calls'] = $tool_results;
 		}
 		
 		return [
@@ -357,11 +448,46 @@ class Bo
 	}
 	
 	/**
+	 * Format tool results as fallback when AI follow-up fails
+	 */
+	private function format_tool_results_fallback($tool_results)
+	{
+		$response = "Here are the results from your request:\n\n";
+		
+		foreach ($tool_results as $tool_result) {
+			$function_name = $tool_result['function']['name'] ?? 'Unknown';
+			$result = $tool_result['result'];
+			
+			if (isset($result['message'])) {
+				$response .= $result['message'] . "\n\n";
+			} elseif (isset($result['success']) && $result['success']) {
+				$response .= "✅ $function_name completed successfully\n\n";
+			} elseif (isset($result['error'])) {
+				$response .= "❌ Error in $function_name: " . $result['error'] . "\n\n";
+			}
+		}
+		
+		return $response;
+	}
+	
+	/**
 	 * Get available tools for AI
 	 */
 	private function get_available_tools()
 	{
 		return [
+			[
+				'type' => 'function',
+				'function' => [
+					'name' => 'get_current_date',
+					'description' => 'Get the current date and time information',
+					'parameters' => [
+						'type' => 'object',
+						'properties' => (object)[],
+						'required' => []
+					]
+				]
+			],
 			[
 				'type' => 'function',
 				'function' => [
@@ -420,12 +546,12 @@ class Bo
 				'type' => 'function',
 				'function' => [
 					'name' => 'search_calendar_events',
-					'description' => 'Search for calendar events in EGroupware',
+					'description' => 'Search for calendar events in EGroupware. Use this when users ask about appointments, meetings, events, or their schedule. For relative dates like "next week", "this month", calculate the actual dates first.',
 					'parameters' => [
 						'type' => 'object',
 						'properties' => [
-							'start_date' => ['type' => 'string', 'description' => 'Start date for search (YYYY-MM-DD)'],
-							'end_date' => ['type' => 'string', 'description' => 'End date for search (YYYY-MM-DD)'],
+							'start_date' => ['type' => 'string', 'description' => 'Start date for search (YYYY-MM-DD). For "next week" use Monday of next week.'],
+							'end_date' => ['type' => 'string', 'description' => 'End date for search (YYYY-MM-DD). For "next week" use Sunday of next week.'],
 							'query' => ['type' => 'string', 'description' => 'Search query for title/description'],
 							'limit' => ['type' => 'integer', 'description' => 'Maximum results to return', 'default' => 10]
 						]
@@ -484,7 +610,14 @@ class Bo
 			$arguments = json_decode($tool_call['function']['arguments'], true);
 			
 			try {
+				// Add timeout protection for each tool call
+				$start_time = microtime(true);
+				
 				switch ($function_name) {
+					case 'get_current_date':
+						$result = $this->get_current_date_internal($arguments);
+						break;
+						
 					case 'create_contact':
 						$result = $this->create_contact_internal($arguments);
 						break;
@@ -513,6 +646,9 @@ class Bo
 						$result = ['error' => 'Unknown tool: ' . $function_name];
 				}
 				
+				$execution_time = round((microtime(true) - $start_time) * 1000);
+				error_log("AI Assistant Debug - Tool $function_name executed in {$execution_time}ms");
+				
 				$results[] = [
 					'id' => $tool_call['id'],
 					'function' => $tool_call['function'],
@@ -520,6 +656,7 @@ class Bo
 				];
 				
 			} catch (\Exception $e) {
+				error_log("AI Assistant Debug - Tool $function_name failed: " . $e->getMessage());
 				$results[] = [
 					'id' => $tool_call['id'],
 					'function' => $tool_call['function'],
@@ -529,6 +666,34 @@ class Bo
 		}
 		
 		return $results;
+	}
+	
+	/**
+	 * Get current date and time information for debugging
+	 */
+	private function get_current_date_internal($args)
+	{
+		$system_time = time();
+		$user_tz = $GLOBALS['egw_info']['user']['preferences']['common']['tz'] ?? 'UTC';
+		
+		return [
+			'success' => true,
+			'message' => sprintf(
+				"**Current Date & Time Information:**\n\n" .
+				"🕒 **System Time:** %s UTC\n" .
+				"🌍 **User Timezone:** %s\n" .
+				"📅 **Today's Date:** %s\n" .
+				"⏰ **Current Time:** %s\n" .
+				"📆 **Week Info:** Week of %s",
+				date('Y-m-d H:i:s', $system_time),
+				$user_tz,
+				date('Y-m-d', $system_time),
+				date('H:i:s', $system_time),
+				date('Y-m-d', strtotime('monday this week', $system_time))
+			),
+			'timestamp' => $system_time,
+			'user_timezone' => $user_tz
+		];
 	}
 	
 	/**
@@ -576,24 +741,68 @@ class Bo
 		}
 		
 		$contacts = new \addressbook_bo();
+		
+		// Debug logging
+		error_log("AI Assistant Debug - Searching for: " . ($args['query'] ?? 'empty query'));
+		
 		$results = $contacts->search($args['query'], false, '', '', '%', false, 'OR', [0, $args['limit'] ?? 10]);
+		
+		// Debug logging
+		error_log("AI Assistant Debug - Search results count: " . (is_array($results) ? count($results) : 0));
+		if (is_array($results) && count($results) > 0) {
+			foreach (array_slice($results, 0, 3) as $contact) {
+				error_log("AI Assistant Debug - Contact: " . ($contact['n_fn'] ?? 'No name') . " (ID: " . ($contact['id'] ?? $contact['contact_id'] ?? 'No ID') . ")");
+			}
+		}
 		
 		$formatted_results = [];
 		if ($results) {
 			foreach ($results as $contact) {
+				// Use contact_id if id is not available
+				$contact_id = $contact['id'] ?? $contact['contact_id'] ?? 0;
+				
 				$formatted_results[] = [
-					'id' => $contact['id'],
-					'name' => $contact['n_fn'],
-					'email' => $contact['email'],
-					'phone' => $contact['tel_work'],
-					'organization' => $contact['org_name'],
-					'title' => $contact['title']
+					'id' => $contact_id,
+					'name' => $contact['n_fn'] ?? ($contact['n_given'] . ' ' . $contact['n_family']),
+					'email' => $contact['email'] ?? $contact['contact_email'] ?? '',
+					'phone' => $contact['tel_work'] ?? '',
+					'organization' => $contact['org_name'] ?? '',
+					'title' => $contact['title'] ?? $contact['contact_title'] ?? ''
 				];
 			}
 		}
 		
+		// Format results for user display
+		if (empty($formatted_results)) {
+			return [
+				'success' => true,
+				'message' => "No contacts found matching '" . ($args['query'] ?? '') . "'.",
+				'results' => [],
+				'count' => 0
+			];
+		}
+		
+		$display_message = "Found " . count($formatted_results) . " contact(s) matching '" . ($args['query'] ?? '') . "':\n\n";
+		foreach ($formatted_results as $contact) {
+			$display_message .= "👤 **{$contact['name']}**\n";
+			if (!empty($contact['email'])) {
+				$display_message .= "   📧 {$contact['email']}\n";
+			}
+			if (!empty($contact['phone'])) {
+				$display_message .= "   📞 {$contact['phone']}\n";
+			}
+			if (!empty($contact['organization'])) {
+				$display_message .= "   🏢 {$contact['organization']}\n";
+			}
+			if (!empty($contact['title'])) {
+				$display_message .= "   💼 {$contact['title']}\n";
+			}
+			$display_message .= "\n";
+		}
+		
 		return [
 			'success' => true,
+			'message' => $display_message,
 			'results' => $formatted_results,
 			'count' => count($formatted_results)
 		];
@@ -604,11 +813,11 @@ class Bo
 	 */
 	private function create_calendar_event_internal($args)
 	{
-		if (!class_exists('calendar_bo')) {
+		if (!class_exists('calendar_boupdate')) {
 			throw new \Exception('Calendar application not available');
 		}
 		
-		$cal = new \calendar_bo();
+		$cal = new \calendar_boupdate();
 		
 		$start_time = strtotime($args['start_time']);
 		$end_time = isset($args['end_time']) ? strtotime($args['end_time']) : $start_time + 3600; // Default 1 hour
@@ -649,49 +858,137 @@ class Bo
 	}
 	
 	/**
-	 * Search calendar events using EGroupware internal API
+	 * Search calendar events using direct database access to egw_cal table
 	 */
 	private function search_calendar_events_internal($args)
 	{
-		if (!class_exists('calendar_bo')) {
-			throw new \Exception('Calendar application not available');
+		if (!isset($GLOBALS['egw']->db)) {
+			throw new \Exception('Database connection not available');
 		}
 		
-		$cal = new \calendar_bo();
+		$db = $GLOBALS['egw']->db;
+		$user_id = $GLOBALS['egw_info']['user']['account_id'];
 		
-		$start_date = isset($args['start_date']) ? strtotime($args['start_date']) : time();
-		$end_date = isset($args['end_date']) ? strtotime($args['end_date']) : strtotime('+1 month');
+		// Use direct timestamp calculations to avoid timezone issues
+		$system_time = time();
+		error_log("AI Assistant Debug - System time: " . date('Y-m-d H:i:s', $system_time));
+		error_log("AI Assistant Debug - EGW user timezone: " . ($GLOBALS['egw_info']['user']['preferences']['common']['tz'] ?? 'not set'));
 		
-		$events = $cal->search([
-			'start' => $start_date,
-			'end' => $end_date,
-			'users' => $GLOBALS['egw_info']['user']['account_id'],
-			'query' => $args['query'] ?? ''
-		]);
+		if (isset($args['start_date'])) {
+			$start_date = strtotime($args['start_date']);
+		} else {
+			// Use current day as start date if not specified
+			$start_date = strtotime('today', $system_time);
+		}
 		
-		$formatted_results = [];
-		if ($events) {
-			$count = 0;
-			foreach ($events as $event) {
-				if ($count >= ($args['limit'] ?? 10)) break;
-				
-				$formatted_results[] = [
-					'id' => $event['id'],
-					'title' => $event['title'],
-					'description' => $event['description'],
-					'start_time' => date('Y-m-d H:i', $event['start']),
-					'end_time' => date('Y-m-d H:i', $event['end']),
-					'location' => $event['location']
-				];
-				$count++;
+		if (isset($args['end_date'])) {
+			$end_date = strtotime($args['end_date']);
+		} else {
+			// Default to end of day if not specified
+			$end_date = strtotime('tomorrow', $start_date) - 1;
+		}
+		
+		error_log("AI Assistant Debug - Search dates (direct): " . date('Y-m-d', $start_date) . " to " . date('Y-m-d', $end_date));
+		
+		try {
+			// Build SQL query to search calendar events from egw_cal table
+			$sql = "SELECT DISTINCT c.cal_id, c.cal_title, c.cal_description, c.cal_location, 
+			               d.cal_start, d.cal_end, c.cal_owner, c.cal_created, c.cal_modified
+			        FROM egw_cal c
+			        JOIN egw_cal_dates d ON c.cal_id = d.cal_id
+			        JOIN egw_cal_user u ON c.cal_id = u.cal_id
+			        WHERE c.cal_deleted IS NULL
+			        AND d.cal_start >= ?
+			        AND d.cal_start <= ?
+			        AND (u.cal_user_type = 'u' AND u.cal_user_id = ? AND u.cal_status != 'R')";
+			
+			$params = [$start_date, $end_date, $user_id];
+			
+			// Add search query if provided
+			if (!empty($args['query'])) {
+				$sql .= " AND (c.cal_title LIKE ? OR c.cal_description LIKE ?)";
+				$search_term = '%' . $args['query'] . '%';
+				$params[] = $search_term;
+				$params[] = $search_term;
 			}
+			
+			// Add ordering and limit
+			$sql .= " ORDER BY d.cal_start ASC";
+			if (!empty($args['limit'])) {
+				$sql .= " LIMIT " . (int)$args['limit'];
+			} else {
+				$sql .= " LIMIT 50"; // Default limit to prevent huge results
+			}
+			
+			error_log("AI Assistant Debug - SQL: " . $sql);
+			error_log("AI Assistant Debug - Params: " . print_r($params, true));
+			
+			$result = $db->query($sql, __LINE__, __FILE__, 0, -1, $params);
+			
+			$formatted_results = [];
+			if ($result) {
+				while (($row = $db->row(true))) {
+					$formatted_results[] = [
+						'cal_id' => $row['cal_id'],
+						'title' => $row['cal_title'],
+						'description' => $row['cal_description'] ?? '',
+						'location' => $row['cal_location'] ?? '',
+						'start_time' => date('Y-m-d H:i', $row['cal_start']),
+						'end_time' => date('Y-m-d H:i', $row['cal_end']),
+						'owner' => $row['cal_owner'],
+						'created' => $row['cal_created'],
+						'modified' => $row['cal_modified']
+					];
+				}
+			}
+			
+			error_log("AI Assistant Debug - Found " . count($formatted_results) . " events via direct SQL");
+			if (count($formatted_results) > 0) {
+				foreach (array_slice($formatted_results, 0, 3) as $event) {
+					error_log("AI Assistant Debug - Event: " . $event['title'] . " on " . $event['start_time'] . " (cal_id: " . $event['cal_id'] . ")");
+				}
+			}
+			
+			// Format results for user display
+			if (empty($formatted_results)) {
+				$search_range = "Search range: " . date('Y-m-d', $start_date) . " to " . date('Y-m-d', $end_date);
+				return [
+					'success' => true,
+					'message' => "No calendar events found for the specified criteria.\n$search_range",
+					'results' => [],
+					'count' => 0
+				];
+			}
+			
+			$search_range = "Search range: " . date('Y-m-d', $start_date) . " to " . date('Y-m-d', $end_date);
+			$display_message = "Found " . count($formatted_results) . " calendar event(s) ($search_range):\n\n";
+			foreach ($formatted_results as $event) {
+				$display_message .= "📅 **{$event['title']}** (cal_id: {$event['cal_id']})\n";
+				$display_message .= "   🕒 {$event['start_time']} - {$event['end_time']}\n";
+				if (!empty($event['location'])) {
+					$display_message .= "   📍 {$event['location']}\n";
+				}
+				if (!empty($event['description'])) {
+					$display_message .= "   📝 {$event['description']}\n";
+				}
+				$display_message .= "\n";
+			}
+			
+			return [
+				'success' => true,
+				'message' => $display_message,
+				'results' => $formatted_results,
+				'count' => count($formatted_results)
+			];
+			
+		} catch (\Exception $e) {
+			error_log("AI Assistant Debug - SQL Error: " . $e->getMessage());
+			return [
+				'success' => false,
+				'error' => 'Failed to search calendar events: ' . $e->getMessage(),
+				'message' => "Error searching calendar events: " . $e->getMessage()
+			];
 		}
-		
-		return [
-			'success' => true,
-			'results' => $formatted_results,
-			'count' => count($formatted_results)
-		];
 	}
 	
 	/**
@@ -699,32 +996,60 @@ class Bo
 	 */
 	private function send_email_internal($args)
 	{
-		if (!class_exists('mail_bo')) {
+		if (!class_exists('EGroupware\Api\Mailer')) {
 			throw new \Exception('Mail application not available');
 		}
 		
-		$mail = new \mail_bo();
-		
-		$to = is_array($args['to']) ? implode(', ', $args['to']) : $args['to'];
-		$cc = !empty($args['cc']) ? (is_array($args['cc']) ? implode(', ', $args['cc']) : $args['cc']) : '';
-		$bcc = !empty($args['bcc']) ? (is_array($args['bcc']) ? implode(', ', $args['bcc']) : $args['bcc']) : '';
-		
-		$email_data = [
-			'to' => $to,
-			'cc' => $cc,
-			'bcc' => $bcc,
-			'subject' => $args['subject'],
-			'body' => $args['body'],
-			'content_type' => 'text/plain'
-		];
-		
 		try {
-			$result = $mail->send($email_data);
+			$mailer = new \EGroupware\Api\Mailer();
+			
+			// Set subject
+			$mailer->addHeader('Subject', $args['subject']);
+			
+			// Set body
+			$mailer->setBody($args['body']);
+			
+			// Add recipients
+			if (is_array($args['to'])) {
+				foreach ($args['to'] as $email) {
+					$mailer->addAddress($email);
+				}
+			} else {
+				$mailer->addAddress($args['to']);
+			}
+			
+			// Add CC recipients
+			if (!empty($args['cc'])) {
+				if (is_array($args['cc'])) {
+					foreach ($args['cc'] as $email) {
+						$mailer->addCc($email);
+					}
+				} else {
+					$mailer->addCc($args['cc']);
+				}
+			}
+			
+			// Add BCC recipients  
+			if (!empty($args['bcc'])) {
+				if (is_array($args['bcc'])) {
+					foreach ($args['bcc'] as $email) {
+						$mailer->addBcc($email);
+					}
+				} else {
+					$mailer->addBcc($args['bcc']);
+				}
+			}
+			
+			// Send the email
+			$mailer->send();
+			
+			$to_list = is_array($args['to']) ? implode(', ', $args['to']) : $args['to'];
 			
 			return [
 				'success' => true,
-				'message' => "Email sent successfully to: $to"
+				'message' => "Email sent successfully to: $to_list"
 			];
+			
 		} catch (\Exception $e) {
 			throw new \Exception('Failed to send email: ' . $e->getMessage());
 		}
