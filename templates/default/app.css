@@ -6,10 +6,7 @@
  */
 
 /* Override EGroupware frame constraints for proper scrolling */
-body.aiassistant,
-.egw_fw_content_browser_iframe,
-.et2_container,
-.et2_container > div {
+body.aiassistant {
 	overflow: visible !important;
 	height: auto !important;
 }
