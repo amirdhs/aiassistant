@@ -34,7 +34,7 @@ Configure the AI Assistant through EGroupware's admin interface:
 
 ## Development
 
-### File Structure
+### File  Structure
 ```
 aiassistant/
 ├── js/                     # Frontend JavaScript/TypeScript
